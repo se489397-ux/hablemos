@@ -1,0 +1,21 @@
+{
+  "name": "Hablemos · Konuşalım",
+  "short_name": "Hablemos",
+  "description": "Conversación por voz con traducción automática español ⇄ turco",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1822",
+  "theme_color": "#0a1822",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADABAMAAACg8nE0AAAAMFBMVEUKGCJTLCudQTQNSEsRd3RbZGussLToVj6icV5cjH3wjn73xr0UqJ5ixb6v4d7////F5d1mAAAEQUlEQVR42u2av4sjZRyHn2SSJScW2XUVyyAclkZW8RQOZrmkuyJK/gGLAwuLLQQLBVNYKBYuaHPNne2dx7Gdgd3FgMUdGLmAhdjkUh2Ke7cjCGaTmR2Lye1tfrzzvu+88xbC+6k28877Pnm/P9+ZLDg5OTk5OTk5OTk5OTk5OTk5/Y9UEA+tv9Raef32w3wAG9dEI9MbgTrA018f77XfxsqAouj6tZRJ5fcxBlxMnbVWMwUUW+nT3jMFXJRMK9fMAIWWbN67ZoA16bw1M4CCAWpGgJZ8YssEUDSrMfK1yrYBVYWJZcNMlqtqeQeqKkmGfQCOBnjbjfDHw/PfIsgF0ACgi9f0KTU51N6Bqg/e9AGadWuAll56KZsICHsQeMD3L/riBmgAuDNIbpv+4vnK6aUDeKqI6IDYIsCDgwx5oJ7J5Ss2Eg1ob8JBCDS37wxs7KDUaPiwB5TadXsm+hmg1LYHiD7pAaWOBR/sJ0Ut2j9q6wSdOuDxzLNRn3YGgE7D6feshGly2+eMOwRWE62UrdPJd7DZgKNfoXTlb5/QAqABdKOeTxMyAFRNNKtze9YAYQ9gf5C3icLkmwfQPdoM40MsAQD6C0OBgYmyxLt5R4PpzTjIBxDk8ISfaqJpfuuvBqw6O0yzrS846Ly6fIK7HgBvvLyi44w/O9R28rITJgFwdWVDq3w5/nCgmcl/LV25KVwfqHyrWypOF2vONEhtyJWfdGvRaOHzXfDup1j6Ql0TcLLslLdTg+Ub3Wr61aKFvN1UgHALIsDpdwuJcUES77u6/eDPvXmAn7GoiRvO7+f+3sOTnekq9azV9HYAscKjTVUXMFtyktSgihTQ8TVNVHiWwoD84O7p7iB523ErmDfA1tMoe7AFED8ZSV6/SE4V05GkGL9QO/OyLqA6KxEzC4tu28h8LqoCk1G6gYHCWfTUNX3QeubhcxrCK8QPiYF4xHqV2iDbqaIAnCw3nmOA+Dj58ITgdVmGpDl5uittsvIn/2LKDu7mcfAqitNAFqKGgCo3FKZvSK0kjqKJ9JhY2FrVXZV38LWaCWTHVSHgRNHGw6w+UPTw44DseSC1zgOFJ1sTALHCfDNAcK7W2QAQyG1kBjiG9XwAkeB4Jl/AbAdzNhoYATrCbKnl9xg7C51hUt+GxHA6PCt2YzNAsNDUFnqbuPeommiQNQ5UAf9m9ZLye1PpHT3DMN2RjI9N8+C+ZPxTU0DYyWQhjUzupo7+o3mqX1V3HqU9pr2TQy1K28JHeRS78ANxlvRyqaZ9EeHjyzkVu/5b2/MXvpBnoV41jRZ+6NrZlU7R/2lvfk9JjPrWOtolaawbApL8LtgD8IPsNYApINqRvAcwBXDP7rEFokvk+28My7raT/v9q2gO6KbGaQ6AcMeqD4B7pvVAquf74jEvD8Dk0XN/2N1CybfqAwgDnJycnJycnJycnJycnIz1H9kD+4yLkmQtAAAAAElFTkSuQmCC",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
