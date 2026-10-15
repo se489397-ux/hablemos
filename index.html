@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1822">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Llamadas de voz con subtítulos traducidos en directo entre español y turco">
+<title>Hablemos · Konuşalım</title>
+<script>
+/* El manifiesto solo fuera del iPhone: en iPhone el icono abre la app dentro de Safari y así no pierde la conexión con tu pareja */
+(function () {
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!ios) {
+    var l = document.createElement('link');
+    l.rel = 'manifest';
+    l.href = 'manifest.json';
+    document.head.appendChild(l);
+  }
+})();
+</script>
+<style>
+/* Mar entre Ibiza y Turquía: coral para quien habla español, turquesa para quien habla turco; la llamada siempre en azul noche */
+:root {
+  --bg: #eef2f4; --surface: #ffffff; --surface2: #f3f6f8; --ink: #12222d; --muted: #5b6c77; --line: #d8e0e5;
+  --coral: #dc5038; --coral-soft: #fbe5df; --turq: #0b9890; --turq-soft: #daf2ef;
+  --ok: #1d8c52; --warn: #c98a00; --warn-bg: #fff1cc; --warn-ink: #5c4300;
+  --green: #1fa855; --red: #e5484d; --night: #0a1822; --night2: #15324a; --on-night: #eef4f7;
+  --shadow: 0 1px 2px rgba(10, 24, 34, .07), 0 6px 18px rgba(10, 24, 34, .06);
+  --radius: 18px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a1822; --surface: #10222f; --surface2: #16293a; --ink: #e5edf1; --muted: #93a6b2; --line: #213a4b;
+    --coral: #ee6249; --coral-soft: #3a1e18; --turq: #22b4aa; --turq-soft: #0e3634;
+    --ok: #4ac883; --warn: #e5b33a; --warn-bg: #3a300f; --warn-ink: #ffe2a0;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font); -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--turq); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.screen.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.wrap { width: 100%; max-width: 560px; margin: 0 auto; padding-block: 28px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand img { width: 56px; height: 56px; border-radius: 15px; flex: none; }
+.brand h1 { margin: 0; font-size: 1.55rem; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; }
+.brand h1 span { color: var(--muted); font-weight: 500; }
+.lead { margin: 0; color: var(--muted); max-width: 46ch; }
+.alt { display: block; margin-top: 2px; }
+.q { margin: 6px 0 0; font-weight: 700; font-size: 1.05rem; }
+.q .alt { font-weight: 600; color: var(--muted); }
+
+.langs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lang { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 18px 16px; border-radius: var(--radius); border: 2px solid var(--line); background: var(--surface); text-align: left; box-shadow: var(--shadow); transition: border-color .15s, background-color .15s; min-width: 0; }
+.lang .flag { font-size: 1.7rem; line-height: 1; }
+.lang b { font-size: 1.25rem; }
+.lang small { color: var(--muted); }
+.lang[data-lang="es"].sel { border-color: var(--coral); background: var(--coral-soft); }
+.lang[data-lang="tr"].sel { border-color: var(--turq); background: var(--turq-soft); }
+
+.field { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.field input, .codeInput { padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 400; font-size: 1rem; width: 100%; }
+.codeInput { font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+
+.primary { display: block; width: 100%; padding: 15px 18px; border: 0; border-radius: 14px; background: var(--coral); color: #fff; font-weight: 700; font-size: 1.05rem; text-align: center; text-decoration: none; }
+.primary:disabled { opacity: .45; cursor: default; }
+.primary.wa { background: #1c9c4f; }
+.secondary { display: block; width: 100%; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-weight: 600; text-align: center; }
+.secondary.danger { color: var(--coral); }
+.linkbtn { border: 0; background: transparent; color: var(--muted); text-decoration: underline; padding: 6px; align-self: center; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+.card h3 { margin: 0; font-size: 1.1rem; }
+.card p { margin: 0; color: var(--muted); }
+.err { color: var(--coral); font-weight: 600; margin: 0; }
+
+.iconbtn { flex: none; width: 44px; height: 44px; border-radius: 12px; border: 0; background: transparent; display: grid; place-items: center; }
+.iconbtn svg { width: 24px; height: 24px; }
+.chip { flex: none; display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface2); font-size: .85rem; font-weight: 700; }
+.chip svg { width: 16px; height: 16px; }
+.banner { margin-top: 6px; padding: 12px 14px; border-radius: 14px; background: var(--warn-bg); color: var(--warn-ink); display: flex; flex-direction: column; gap: 10px; font-size: .95rem; margin-left: max(12px, env(safe-area-inset-left, 0px)); margin-right: max(12px, env(safe-area-inset-right, 0px)); }
+.banner button { align-self: flex-start; padding: 9px 14px; border-radius: 10px; border: 0; background: var(--warn-ink); color: var(--warn-bg); font-weight: 700; }
+
+/* Inicio: tu pareja y el botón de llamar */
+.bar { display: flex; align-items: center; gap: 10px; min-height: 60px; padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px)); }
+.mini { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.mini img { width: 34px; height: 34px; border-radius: 10px; flex: none; }
+.mini span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lobby { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+.avatar-xl { position: relative; width: 116px; height: 116px; border-radius: 50%; background: var(--turq); color: #fff; display: grid; place-items: center; font-size: 2.7rem; font-weight: 800; flex: none; }
+.avatar-xl.es { background: var(--coral); }
+.avatar-xl::after { content: ""; position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: #9aa8b1; border: 4px solid var(--bg); }
+.avatar-xl.on::after { background: var(--ok); }
+.lobbyName { display: flex; flex-direction: column; gap: 2px; max-width: 100%; }
+.lobbyName b { font-size: 1.6rem; line-height: 1.15; overflow-wrap: anywhere; }
+.lobbyName small { color: var(--muted); font-size: 1rem; }
+.callbtn { margin-top: 18px; width: 96px; height: 96px; border-radius: 50%; border: 0; background: var(--green); color: #fff; display: grid; place-items: center; box-shadow: 0 12px 30px rgba(31, 168, 85, .38); }
+.callbtn:disabled { opacity: .45; box-shadow: none; cursor: default; }
+.callbtn svg { width: 40px; height: 40px; }
+.callLabel { font-weight: 700; margin-top: -4px; }
+.subschip { margin-top: 12px; display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; font-size: .9rem; max-width: 100%; text-align: left; }
+.subschip i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+.subschip.off i { background: var(--warn); }
+.lobbyFoot { display: flex; justify-content: center; padding: 10px 16px 18px; }
+
+.arranque { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 24px; background: var(--bg); background: color-mix(in srgb, var(--bg) 88%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.startBtn { display: flex; flex-direction: column; align-items: center; gap: 10px; border: 0; background: transparent; text-align: center; max-width: 330px; }
+.startBtn .big { width: 124px; height: 124px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(31, 168, 85, .4); }
+.startBtn .big svg { width: 54px; height: 54px; }
+.startBtn b { font-size: 1.3rem; }
+.startBtn small { color: var(--muted); font-size: .95rem; }
+
+/* Llamada: siempre oscura, con subtítulos grandes */
+.callscr { background: radial-gradient(120% 70% at 50% 0%, var(--night2) 0%, var(--night) 62%); color: var(--on-night); color-scheme: dark; }
+.callTop { display: flex; align-items: center; gap: 12px; min-height: 66px; padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--turq); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; }
+.avatar.es { background: var(--coral); }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.who b { font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who small { color: rgba(238, 244, 247, .7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timer { font-variant-numeric: tabular-nums; font-weight: 700; color: rgba(238, 244, 247, .85); }
+.callNote { margin: 10px max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, .1); display: flex; flex-direction: column; gap: 10px; font-size: .95rem; }
+.notebtn { align-self: flex-start; padding: 9px 14px; border-radius: 10px; background: #1c9c4f; color: #fff; font-weight: 700; text-decoration: none; }
+.ringView { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; }
+.ringView .avatar-xl::after { display: none; }
+.ringName { margin-top: 28px; font-size: 1.9rem; line-height: 1.15; overflow-wrap: anywhere; }
+.ringState { min-height: 1.5em; font-size: 1.05rem; color: rgba(238, 244, 247, .78); max-width: 34ch; }
+.pulse { position: relative; display: grid; place-items: center; }
+.pulse::before, .pulse::after { content: ""; position: absolute; width: 116px; height: 116px; border-radius: 50%; border: 2px solid rgba(238, 244, 247, .35); animation: halo 2.4s ease-out infinite; }
+.pulse::after { animation-delay: 1.2s; }
+.ringView.still .pulse::before, .ringView.still .pulse::after { display: none; }
+@keyframes halo { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(1.9); opacity: 0; } }
+.subsBox { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px; padding-block: 12px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.subsEmpty { margin: auto; text-align: center; color: rgba(238, 244, 247, .6); max-width: 32ch; }
+.sub { display: flex; flex-direction: column; gap: 4px; }
+.sub .tr { margin: 0; font-size: 1.2rem; font-weight: 600; line-height: 1.3; color: rgba(238, 244, 247, .55); overflow-wrap: anywhere; }
+.sub .o { margin: 0; font-size: .85rem; color: rgba(238, 244, 247, .42); overflow-wrap: anywhere; }
+.sub.now .tr { font-size: 1.75rem; color: #fff; line-height: 1.25; }
+.sub.now .o { font-size: .95rem; color: rgba(238, 244, 247, .6); }
+.subsBox.big .sub .tr { font-size: 1.45rem; }
+.subsBox.big .sub.now .tr { font-size: 2.25rem; }
+.sub.live .tr::after { content: "▍"; margin-left: 2px; color: var(--turq); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.mine { padding-block: 10px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-top: 1px solid rgba(255, 255, 255, .08); font-size: .9rem; color: rgba(238, 244, 247, .7); overflow-wrap: anywhere; }
+.mine b { color: rgba(238, 244, 247, .9); }
+.mineTr { display: block; margin-top: 2px; color: rgba(238, 244, 247, .5); }
+.callCtl { padding-top: 14px; padding-bottom: 26px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); min-height: 130px; }
+.ctlrow { display: flex; justify-content: center; gap: 28px; }
+.cwrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 88px; font-size: .85rem; line-height: 1.25; color: rgba(238, 244, 247, .82); text-align: center; }
+.cbtn { width: 72px; height: 72px; border-radius: 50%; border: 0; display: grid; place-items: center; color: #fff; }
+.cbtn:disabled { opacity: .4; cursor: default; }
+.cbtn svg { width: 30px; height: 30px; }
+.cbtn.green { background: var(--green); }
+.cbtn.red { background: var(--red); }
+.cbtn.red svg { transform: rotate(135deg); }
+.cbtn.ghost { background: rgba(255, 255, 255, .14); }
+.cbtn.ghost.on { background: #fff; color: var(--night); }
+.cbtn .aa { font-weight: 800; font-size: 1.3rem; }
+#btnMute .i-off { display: none; }
+#btnMute.on .i-on { display: none; }
+#btnMute.on .i-off { display: block; }
+
+dialog { border: 0; padding: 0; background: transparent; color: var(--ink); width: 100%; max-width: 560px; margin: auto auto 0; max-height: 92vh; max-height: 92dvh; }
+dialog::backdrop { background: rgba(5, 12, 18, .55); }
+.sheet { background: var(--surface); border-radius: 22px 22px 0 0; padding-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 12px; max-height: 92vh; max-height: 92dvh; overflow-y: auto; }
+.sheet h3 { margin: 0; font-size: 1.2rem; }
+.sheet h4 { margin: 0; font-size: 1.05rem; }
+.sheet p { margin: 0; color: var(--muted); }
+.group { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface2); }
+.btnrow { display: flex; gap: 10px; }
+.btnrow > * { flex: 1; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 4px 0; font-weight: 600; }
+.row span { flex: 1; }
+.row input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--coral); flex: none; }
+.sheet p.keyStatus { color: var(--ink); font-weight: 600; }
+.sheet p.keyStatus.ok { color: var(--ok); }
+.sheet p.keyStatus.bad { color: var(--coral); }
+.testBox { padding: 12px; border-radius: 12px; background: var(--night); display: flex; flex-direction: column; gap: 4px; min-height: 64px; }
+.sheet .testBox p { margin: 0; color: var(--on-night); font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
+.sheet .testBox p.dim { color: rgba(238, 244, 247, .65); font-weight: 400; font-size: .92rem; }
+.codeBig { font: 800 1.55rem/1.2 var(--mono); letter-spacing: .06em; text-align: center; padding: 14px; border-radius: 14px; background: var(--surface2); border: 1px dashed var(--line); -webkit-user-select: all; user-select: all; overflow-wrap: anywhere; }
+.steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px; }
+.small { font-size: .85rem; color: var(--muted); }
+.small b { font-family: var(--mono); color: var(--ink); }
+
+@media (max-width: 360px) { .langs { grid-template-columns: 1fr; } .ctlrow { gap: 16px; } }
+@media (prefers-reduced-motion: reduce) { .pulse::before, .pulse::after, .sub.live .tr::after { animation: none; } }
+</style>
+</head>
+<body>
+
+<!-- 1 · Idioma -->
+<section id="sIdioma" class="screen scroll" hidden>
+  <div class="wrap">
+    <div class="brand">
+      <img class="logo" alt="">
+      <h1>Hablemos <span>·</span> Konuşalım</h1>
+    </div>
+    <p class="lead">Llamadas de voz con subtítulos traducidos: os oís de verdad y en la pantalla sale lo que dice el otro en tu idioma.<span class="alt" lang="tr">Altyazılı sesli aramalar: birbirinizi gerçekten duyarsınız ve ekranda karşındakinin söyledikleri senin dilinde çıkar.</span></p>
+    <p class="q">¿Qué idioma hablas?<span class="alt" lang="tr">Hangi dili konuşuyorsun?</span></p>
+    <div class="langs">
+      <button type="button" class="lang" data-lang="es"><span class="flag">🇪🇸</span><b>Español</b><small>Yo hablo español</small></button>
+      <button type="button" class="lang" data-lang="tr"><span class="flag">🇹🇷</span><b>Türkçe</b><small>Türkçe konuşuyorum</small></button>
+    </div>
+    <label class="field"><span id="lblNombre">Tu nombre · Adın</span><input id="inNombre" maxlength="24" autocomplete="given-name" placeholder="Opcional · İsteğe bağlı"></label>
+    <button type="button" id="btnIdiomaOk" class="primary" disabled>Continuar · Devam</button>
+  </div>
+</section>
+
+<!-- 2 · Sala -->
+<section id="sSala" class="screen scroll" hidden>
+  <div class="wrap">
+    <div class="brand">
+      <img class="logo" alt="">
+      <h1>Hablemos <span>·</span> Konuşalım</h1>
+    </div>
+    <div class="card">
+      <h3 data-t="newConvTitle"></h3>
+      <p data-t="newConvHelp"></p>
+      <button type="button" id="btnCrear" class="primary" data-t="newConv"></button>
+    </div>
+    <div class="card">
+      <h3 data-t="haveCodeTitle"></h3>
+      <p data-t="haveCodeHelp"></p>
+      <input id="inCodigo" class="codeInput" autocomplete="off" autocapitalize="characters" spellcheck="false" data-tp="codePh">
+      <p id="errCodigo" class="err" data-t="badCode" hidden></p>
+      <button type="button" id="btnUnirme" class="secondary" data-t="join"></button>
+    </div>
+    <button type="button" id="btnInstalarSala" class="secondary" data-t="install" hidden></button>
+    <button type="button" id="btnVolverIdioma" class="linkbtn" data-t="changeLang"></button>
+  </div>
+</section>
+
+<!-- 3 · Inicio -->
+<section id="sInicio" class="screen" hidden>
+  <header class="bar">
+    <div class="mini"><img class="logo" alt=""><span>Hablemos · Konuşalım</span></div>
+    <button type="button" id="btnInstalarL" class="chip" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg><span data-t="installShort"></span></button>
+    <button type="button" id="btnAjustes" class="iconbtn" data-ta="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M19 6h1M4 12h2M12 12h8M4 18h7M17 18h3"/><circle cx="16" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="14" cy="18" r="2.5"/></svg></button>
+  </header>
+  <div id="banner" class="banner" hidden><span id="bannerTxt"></span><button type="button" id="bannerBtn" hidden></button></div>
+  <main class="lobby">
+    <div id="avL" class="avatar-xl"><span id="inicialL">?</span></div>
+    <div class="lobbyName"><b id="nameL"></b><small id="stateL"></small></div>
+    <button type="button" id="btnLlamar" class="callbtn" data-ta="call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg></button>
+    <span class="callLabel" data-t="call"></span>
+    <button type="button" id="chipSubs" class="subschip"><i></i><span id="subsTxt"></span></button>
+  </main>
+  <footer class="lobbyFoot"><button type="button" id="btnInvitarL" class="linkbtn" data-t="inviteAgain"></button></footer>
+  <div id="armar" class="arranque">
+    <button type="button" id="btnArmar" class="startBtn">
+      <span class="big"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg></span>
+      <b data-t="activateTitle"></b>
+      <small data-t="activateHint"></small>
+    </button>
+  </div>
+</section>
+
+<!-- 4 · Llamada -->
+<section id="sLlamada" class="screen callscr" hidden>
+  <header id="callTop" class="callTop" hidden>
+    <div id="avC" class="avatar"><span id="inicialC">?</span></div>
+    <div class="who"><b id="nameC"></b><small id="stateC"></small></div>
+    <span id="timer" class="timer"></span>
+  </header>
+  <div id="callNote" class="callNote" hidden><span id="callNoteTxt"></span><a id="callNoteBtn" class="notebtn" href="#" target="_blank" rel="noopener" hidden></a></div>
+  <div id="ringView" class="ringView">
+    <div class="pulse"><div id="avR" class="avatar-xl"><span id="inicialR">?</span></div></div>
+    <b id="nameR" class="ringName"></b>
+    <span id="stateR" class="ringState"></span>
+  </div>
+  <div id="subsBox" class="subsBox" aria-live="polite" hidden></div>
+  <div id="mine" class="mine" hidden><b data-t="you"></b>: <span id="mineO"></span><span id="mineTr" class="mineTr"></span></div>
+  <footer class="callCtl">
+    <div id="ctlIncoming" class="ctlrow" hidden>
+      <div class="cwrap"><button type="button" id="btnRechazar" class="cbtn red" data-ta="decline"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg></button><span data-t="decline"></span></div>
+      <div class="cwrap"><button type="button" id="btnAceptar" class="cbtn green" data-ta="accept"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg></button><span data-t="accept"></span></div>
+    </div>
+    <div id="ctlOutgoing" class="ctlrow" hidden>
+      <div class="cwrap"><button type="button" id="btnCancelar" class="cbtn red" data-ta="cancel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg></button><span data-t="cancel"></span></div>
+    </div>
+    <div id="ctlActive" class="ctlrow" hidden>
+      <div class="cwrap"><button type="button" id="btnMute" class="cbtn ghost" data-ta="mute"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4M8 21h8"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4M8 21h8"/><path d="M3 3l18 18"/></svg></button><span id="muteLbl"></span></div>
+      <div class="cwrap"><button type="button" id="btnColgar" class="cbtn red" data-ta="hangup"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z"/></svg></button><span data-t="hangup"></span></div>
+      <div class="cwrap"><button type="button" id="btnTam" class="cbtn ghost" data-ta="textSize"><span class="aa">Aa</span></button><span data-t="textSize"></span></div>
+    </div>
+  </footer>
+  <audio id="remoteAudio" autoplay playsinline></audio>
+</section>
+
+<!-- Ajustes -->
+<dialog id="dlgAjustes">
+  <div class="sheet">
+    <h3 data-t="settings"></h3>
+    <div class="group">
+      <h4 data-t="subsTitle"></h4>
+      <p id="keyStatus" class="keyStatus"></p>
+      <label class="field"><span data-t="keyLabel"></span><input id="inKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <div class="btnrow"><button type="button" id="btnKeySave" class="primary" data-t="keySave"></button><button type="button" id="btnKeyDel" class="secondary" data-t="keyDelete"></button></div>
+      <ol class="steps small" id="keyHelp"></ol>
+      <button type="button" id="btnTest" class="secondary" data-t="test"></button>
+      <div id="testBox" class="testBox" hidden><p id="testO"></p><p id="testTr" class="dim"></p></div>
+    </div>
+    <label class="row"><span data-t="bigText"></span><input type="checkbox" id="optBig"></label>
+    <label class="row"><span data-t="showMine"></span><input type="checkbox" id="optMine"></label>
+    <button type="button" class="secondary" id="btnInvitarAj" data-t="inviteAgain"></button>
+    <button type="button" class="secondary" id="btnInstalarAj" data-t="install"></button>
+    <button type="button" class="secondary" id="btnCambiarIdioma" data-t="changeLang"></button>
+    <button type="button" class="secondary danger" id="btnSalir" data-t="leave"></button>
+    <p class="small"><span data-t="codeLabel"></span>: <b id="codigoActual"></b></p>
+    <button type="button" class="primary" id="btnCerrarAj" data-t="close"></button>
+  </div>
+</dialog>
+
+<!-- Invitar -->
+<dialog id="dlgInvitar">
+  <div class="sheet">
+    <h3 data-t="shareTitle"></h3>
+    <p data-t="shareHelp"></p>
+    <div class="codeBig" id="codeBig"></div>
+    <a id="lnkWhats" class="primary wa" href="#" target="_blank" rel="noopener" data-t="shareWhatsApp"></a>
+    <button type="button" class="secondary" id="btnCompartir" data-t="shareOther"></button>
+    <button type="button" class="secondary" id="btnCopiar" data-t="copyLink"></button>
+    <button type="button" class="primary" id="btnCerrarInv" data-t="ready"></button>
+  </div>
+</dialog>
+
+<!-- Instalar -->
+<dialog id="dlgInstalar">
+  <div class="sheet">
+    <h3 data-t="installTitle"></h3>
+    <ol class="steps" id="pasosInstalar"></ol>
+    <p class="small" id="notaInstalar"></p>
+    <button type="button" class="primary" id="btnCerrarInst" data-t="close"></button>
+  </div>
+</dialog>
+
+<script id="core">
+/* ===== Núcleo: código de sala, cifrado, conexión en tiempo real y traducción ===== */
+(function () {
+  'use strict';
+  var CONFIG = {
+    mqtt: ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'],
+    ntfy: 'https://ntfy.sh',
+    salt: 'hablemos-konusalim-v1',
+    iterations: 150000,
+    dgUrl: 'wss://api.deepgram.com/v1/listen',
+    stun: ['stun:stun.l.google.com:19302'],
+    turnHost: 'staticauth.openrelay.metered.ca',
+    turnSecret: 'openrelayprojectsecret',
+    ringTimeout: 45000,
+    iceWait: 4000
+  };
+  var enc = new TextEncoder();
+  var dec = new TextDecoder();
+  var ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function hex(b) { var s = ''; for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16); return s; }
+  function b64u(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; var s = atob(str); var b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+  function rid(n) { n = n || 12; var r = crypto.getRandomValues(new Uint8Array(n)); var a = 'abcdefghijklmnopqrstuvwxyz0123456789'; var s = ''; for (var i = 0; i < n; i++) s += a[r[i] % 36]; return s; }
+
+  function newCode() { var r = crypto.getRandomValues(new Uint8Array(12)); var c = ''; for (var i = 0; i < 12; i++) c += ALPHA[r[i] % 32]; return c; }
+  function normCode(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function validCode(c) { return /^[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{12}$/.test(c || ''); }
+  function fmtCode(c) { return String(c || '').replace(/(.{4})(?=.)/g, '$1-'); }
+  function parseCodeInput(s) { s = String(s || ''); var m = s.match(/[#&?]c=([A-Za-z0-9-]+)/); return normCode(m ? m[1] : s); }
+
+  async function deriveRoom(code) {
+    var base = await crypto.subtle.importKey('raw', enc.encode(normCode(code)), 'PBKDF2', false, ['deriveBits']);
+    var bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(CONFIG.salt), iterations: CONFIG.iterations, hash: 'SHA-256' }, base, 512));
+    var key = await crypto.subtle.importKey('raw', bits.slice(0, 32), 'AES-GCM', false, ['encrypt', 'decrypt']);
+    return { key: key, topic: 'hk' + hex(bits.slice(32, 48)) };
+  }
+  async function encrypt(key, obj) {
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, enc.encode(JSON.stringify(obj))));
+    var out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12);
+    return 'v1.' + b64u(out);
+  }
+  async function decrypt(key, s) {
+    try {
+      if (typeof s !== 'string' || s.slice(0, 3) !== 'v1.') return null;
+      var b = unb64u(s.slice(3).trim());
+      var pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.subarray(0, 12) }, key, b.subarray(12));
+      return JSON.parse(dec.decode(pt));
+    } catch (e) { return null; }
+  }
+
+  /* Comprime textos largos (la descripción técnica de la llamada) para que quepan en un mensaje */
+  async function pack(str) {
+    try {
+      var buf = await new Response(new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+      return 'z.' + b64u(new Uint8Array(buf));
+    } catch (e) { return 'r.' + b64u(enc.encode(str)); }
+  }
+  async function unpack(s) {
+    s = String(s || '');
+    if (s.slice(0, 2) === 'r.') return dec.decode(unb64u(s.slice(2)));
+    if (s.slice(0, 2) !== 'z.') return s;
+    var buf = await new Response(new Blob([unb64u(s.slice(2))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+    return dec.decode(buf);
+  }
+
+  /* Servidores para que la llamada conecte: STUN de Google y, de reserva, el relé gratuito de Open Relay */
+  async function iceServers() {
+    var list = [];
+    if (CONFIG.stun && CONFIG.stun.length) list.push({ urls: CONFIG.stun });
+    if (CONFIG.turnHost) {
+      try {
+        var user = (Math.floor(Date.now() / 1000) + 86400) + ':hablemos';
+        var k = await crypto.subtle.importKey('raw', enc.encode(CONFIG.turnSecret), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+        var sig = new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(user)));
+        var s = ''; for (var i = 0; i < sig.length; i++) s += String.fromCharCode(sig[i]);
+        var h = CONFIG.turnHost;
+        list.push({ urls: ['turn:' + h + ':80', 'turn:' + h + ':80?transport=tcp', 'turns:' + h + ':443?transport=tcp'], username: user, credential: btoa(s) });
+      } catch (e) {}
+    }
+    return list;
+  }
+
+  /* --- Cliente MQTT mínimo (3.1.1 sobre WebSocket, QoS 0) --- */
+  var MQ = {
+    len: function (n) { var out = []; do { var d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; out.push(d); } while (n > 0); return out; },
+    str: function (s) { var b = enc.encode(s); var out = [b.length >> 8, b.length & 255]; for (var i = 0; i < b.length; i++) out.push(b[i]); return out; },
+    pkt: function (h, body) { var l = MQ.len(body.length); var a = new Uint8Array(1 + l.length + body.length); a[0] = h; a.set(l, 1); a.set(body, 1 + l.length); return a; },
+    connect: function (id, ka) { return MQ.pkt(0x10, [0, 4, 77, 81, 84, 84, 4, 2, ka >> 8, ka & 255].concat(MQ.str(id))); },
+    subscribe: function (pid, topic) { return MQ.pkt(0x82, [pid >> 8, pid & 255].concat(MQ.str(topic), [0])); },
+    publish: function (topic, payload) { var t = MQ.str(topic); var p = enc.encode(payload); var body = new Uint8Array(t.length + p.length); body.set(t); body.set(p, t.length); return MQ.pkt(0x30, body); },
+    ping: function () { return new Uint8Array([0xC0, 0]); },
+    disconnect: function () { return new Uint8Array([0xE0, 0]); }
+  };
+
+  function MiniMQTT(url, clientId, topic, onPayload, onState) {
+    this.url = url; this.clientId = clientId; this.topic = topic; this.onPayload = onPayload; this.onState = onState || function () {};
+    this.ws = null; this.up = false; this.buf = new Uint8Array(0); this.delay = 1500; this.stopped = true; this.pid = 1; this.lastRx = 0;
+  }
+  MiniMQTT.prototype.start = function () { this.stopped = false; this.open(); };
+  MiniMQTT.prototype.open = function () {
+    var self = this;
+    if (this.stopped || this.ws) return;
+    var ws;
+    try { ws = new WebSocket(this.url, ['mqtt']); } catch (e) { return this.retry(); }
+    this.ws = ws; ws.binaryType = 'arraybuffer'; this.buf = new Uint8Array(0); this.lastRx = Date.now();
+    var killer = setTimeout(function () { if (self.ws === ws && !self.up) { try { ws.close(); } catch (e) {} } }, 12000);
+    ws.onopen = function () { try { ws.send(MQ.connect(self.clientId, 60)); } catch (e) {} };
+    ws.onmessage = function (ev) { self.lastRx = Date.now(); var d = ev.data; if (d && typeof d.byteLength === 'number') self.feed(new Uint8Array(d)); };
+    ws.onerror = function () {};
+    ws.onclose = function () {
+      clearTimeout(killer); clearInterval(self.pinger); clearTimeout(self.check);
+      if (self.ws === ws) self.ws = null;
+      self.setUp(false); self.retry();
+    };
+  };
+  MiniMQTT.prototype.feed = function (chunk) {
+    var b = new Uint8Array(this.buf.length + chunk.length); b.set(this.buf); b.set(chunk, this.buf.length); this.buf = b;
+    while (this.buf.length >= 2) {
+      var mult = 1, len = 0, i = 1, byte;
+      do {
+        if (i >= this.buf.length) return;
+        byte = this.buf[i++]; len += (byte & 127) * mult; mult *= 128;
+        if (mult > 268435456) { this.buf = new Uint8Array(0); return; }
+      } while (byte & 128);
+      if (this.buf.length < i + len) return;
+      var h = this.buf[0];
+      var body = this.buf.slice(i, i + len);
+      this.buf = this.buf.slice(i + len);
+      try { this.handle(h >> 4, h & 15, body); } catch (e) {}
+    }
+  };
+  MiniMQTT.prototype.handle = function (type, flags, body) {
+    var self = this;
+    if (type === 2) { // CONNACK
+      if (body[1] === 0) {
+        this.delay = 1500;
+        this.send(MQ.subscribe(this.pid, this.topic)); this.pid = this.pid >= 65000 ? 1 : this.pid + 1;
+        clearInterval(this.pinger);
+        this.pinger = setInterval(function () {
+          if (Date.now() - self.lastRx > 90000) { try { self.ws && self.ws.close(); } catch (e) {} return; }
+          self.send(MQ.ping());
+        }, 30000);
+      } else { try { this.ws.close(); } catch (e) {} }
+    } else if (type === 9) { // SUBACK
+      this.setUp(true);
+    } else if (type === 3) { // PUBLISH
+      var tl = (body[0] << 8) | body[1];
+      var topic = dec.decode(body.subarray(2, 2 + tl));
+      var off = 2 + tl + (((flags >> 1) & 3) ? 2 : 0);
+      if (topic === this.topic) this.onPayload(dec.decode(body.subarray(off)));
+    }
+  };
+  MiniMQTT.prototype.send = function (bytes) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(bytes); return true; } catch (e) {} } return false; };
+  MiniMQTT.prototype.publish = function (payload) { return this.up ? this.send(MQ.publish(this.topic, payload)) : false; };
+  MiniMQTT.prototype.retry = function () { var self = this; if (this.stopped) return; clearTimeout(this.rt); this.rt = setTimeout(function () { self.open(); }, this.delay); this.delay = Math.min(this.delay * 2, 30000); };
+  MiniMQTT.prototype.kick = function () {
+    var self = this;
+    if (this.stopped) return;
+    if (!this.ws) { clearTimeout(this.rt); this.delay = 1500; this.open(); return; }
+    if (this.up) {
+      var t0 = Date.now(); this.send(MQ.ping()); clearTimeout(this.check);
+      this.check = setTimeout(function () { if (self.lastRx < t0 && self.ws) { try { self.ws.close(); } catch (e) {} } }, 6000);
+    }
+  };
+  MiniMQTT.prototype.stop = function () {
+    this.stopped = true; clearTimeout(this.rt); clearInterval(this.pinger); clearTimeout(this.check);
+    var ws = this.ws; this.ws = null;
+    if (ws) { try { if (ws.readyState === 1) ws.send(MQ.disconnect()); } catch (e) {} try { ws.close(); } catch (e) {} }
+    this.setUp(false);
+  };
+  MiniMQTT.prototype.setUp = function (v) { if (this.up !== v) { this.up = v; this.onState(); } };
+
+  /* --- ntfy.sh: canal de respaldo por HTTPS que guarda los mensajes 12 h --- */
+  function NtfyLink(base, topic, onPayload, onState, onId) {
+    this.base = base; this.topic = topic; this.onPayload = onPayload; this.onState = onState || function () {}; this.onId = onId || function () {};
+    this.es = null; this.ok = false; this.lastId = null; this.delay = 1500; this.cool = 0; this.lastRx = 0; this.stopped = true;
+  }
+  NtfyLink.prototype.start = function (sinceId) {
+    var self = this;
+    this.stopped = false; this.lastId = sinceId || null; this.open();
+    clearInterval(this.watch);
+    this.watch = setInterval(function () { if (self.es && Date.now() - self.lastRx > 110000) self.reopen(); }, 30000);
+  };
+  NtfyLink.prototype.open = function () {
+    var self = this;
+    if (this.stopped || this.es) return;
+    var since = this.lastId || '2m';
+    var es;
+    try { es = new EventSource(this.base + '/' + this.topic + '/sse?since=' + encodeURIComponent(since)); } catch (e) { return this.retry(); }
+    this.es = es; this.lastRx = Date.now();
+    var alive = function () { self.lastRx = Date.now(); self.delay = 1500; self.setOk(true); };
+    es.onopen = alive;
+    es.addEventListener('open', alive);
+    es.addEventListener('keepalive', alive);
+    es.onmessage = function (ev) {
+      alive();
+      var j; try { j = JSON.parse(ev.data); } catch (e) { return; }
+      if (!j || (j.event && j.event !== 'message')) return;
+      if (j.id) { self.lastId = j.id; self.onId(j.id); }
+      if (typeof j.message === 'string') self.onPayload(j.message, j.time);
+    };
+    es.onerror = function () {
+      if (self.es !== es) return;
+      try { es.close(); } catch (e) {}
+      self.es = null; self.setOk(false); self.retry();
+    };
+  };
+  NtfyLink.prototype.reopen = function () { if (this.es) { try { this.es.close(); } catch (e) {} this.es = null; } this.setOk(false); clearTimeout(this.rt); this.delay = 1500; this.open(); };
+  NtfyLink.prototype.retry = function () { var self = this; if (this.stopped) return; clearTimeout(this.rt); this.rt = setTimeout(function () { self.open(); }, this.delay); this.delay = Math.min(this.delay * 2, 30000); };
+  NtfyLink.prototype.kick = function () { if (this.stopped) return; if (!this.es || Date.now() - this.lastRx > 70000) this.reopen(); };
+  NtfyLink.prototype.publish = async function (payload) {
+    if (Date.now() < this.cool || payload.length > 3900) return false;
+    try {
+      var r = await fetch(this.base + '/' + this.topic, { method: 'POST', body: payload });
+      if (r.status === 429) { this.cool = Date.now() + 60000; return false; }
+      return r.ok;
+    } catch (e) { return false; }
+  };
+  NtfyLink.prototype.stop = function () { this.stopped = true; clearTimeout(this.rt); clearInterval(this.watch); if (this.es) { try { this.es.close(); } catch (e) {} } this.es = null; this.setOk(false); };
+  NtfyLink.prototype.setOk = function (v) { if (this.ok !== v) { this.ok = v; this.onState(); } };
+
+  /* --- Enlace de la sala: junta los tres canales, cifra y quita duplicados --- */
+  function Link(o) {
+    this.code = o.code; this.clientId = o.clientId; this.onEvent = o.onEvent; this.onState = o.onState || function () {}; this.onNtfyId = o.onNtfyId || function () {};
+    this.seen = new Set(); this.seenQ = []; this.mqtts = []; this.ntfy = null; this.key = null; this.closed = false;
+  }
+  Link.prototype.open = async function (sinceId) {
+    var self = this;
+    var r = await deriveRoom(this.code);
+    if (this.closed) return;
+    this.key = r.key; this.topic = r.topic;
+    var mt = 'hablemos/' + r.topic;
+    this.mqtts = CONFIG.mqtt.map(function (u) {
+      return new MiniMQTT(u, 'hk_' + rid(16), mt, function (p) { self.incoming(p, 'mqtt', 0); }, function () { self.onState(); });
+    });
+    this.ntfy = new NtfyLink(CONFIG.ntfy, r.topic, function (p, time) {
+      self.incoming(p, 'ntfy', time ? Math.max(0, Date.now() - time * 1000) : 0);
+    }, function () { self.onState(); }, function (id) { self.onNtfyId(id); });
+    this.mqtts.forEach(function (m) { m.start(); });
+    this.ntfy.start(sinceId);
+  };
+  Link.prototype.mqttUp = function () { return this.mqtts.filter(function (m) { return m.up; }).length; };
+  Link.prototype.up = function () { return this.mqttUp() > 0 || !!(this.ntfy && this.ntfy.ok); };
+  Link.prototype.remember = function (id) { this.seen.add(id); this.seenQ.push(id); if (this.seenQ.length > 1000) this.seen.delete(this.seenQ.shift()); };
+  Link.prototype.incoming = async function (payload, via, age) {
+    if (!this.key || this.closed) return;
+    var obj = await decrypt(this.key, payload);
+    if (!obj || typeof obj !== 'object' || typeof obj.id !== 'string' || obj.f === this.clientId) return;
+    if (this.seen.has(obj.id)) return;
+    this.remember(obj.id);
+    try { this.onEvent(obj, { via: via, fresh: age < 90000, age: age }); } catch (e) { if (window.console) console.error(e); }
+  };
+  /* opts.ntfy: true = enviar también por ntfy · false = nunca · sin indicar = solo si MQTT no está disponible */
+  Link.prototype.send = async function (obj, opts) {
+    opts = opts || {};
+    if (!this.key || this.closed) return false;
+    obj.f = this.clientId; if (!obj.id) obj.id = rid(12); if (!obj.ts) obj.ts = Date.now();
+    this.remember(obj.id);
+    var p = await encrypt(this.key, obj);
+    var ok = false;
+    this.mqtts.forEach(function (m) { if (m.publish(p)) ok = true; });
+    if (opts.ntfy === true || (!ok && opts.ntfy !== false)) { if (await this.ntfy.publish(p)) ok = true; }
+    return ok;
+  };
+  /* Mensaje cifrado por adelantado, para poder enviarlo al instante cuando se cierra la app */
+  Link.prototype.prepare = async function (obj) {
+    if (!this.key || this.closed) return null;
+    obj.f = this.clientId; obj.id = rid(12); obj.ts = Date.now();
+    return { id: obj.id, p: await encrypt(this.key, obj) };
+  };
+  Link.prototype.sendNow = function (prep) {
+    if (!prep || this.closed) return false;
+    this.remember(prep.id);
+    var ok = false;
+    this.mqtts.forEach(function (m) { if (m.publish(prep.p)) ok = true; });
+    return ok;
+  };
+  Link.prototype.wake = function () { if (this.closed) return; this.mqtts.forEach(function (m) { m.kick(); }); if (this.ntfy) this.ntfy.kick(); };
+  Link.prototype.close = function () { this.closed = true; this.mqtts.forEach(function (m) { m.stop(); }); if (this.ntfy) this.ntfy.stop(); };
+
+  /* --- Traducción: Google; si falla, MyMemory; si falla, Lingva --- */
+  var googleCool = 0;
+  function decodeEntities(s) { return String(s).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+  async function fetchJSON(url, ms) {
+    var ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var tm = setTimeout(function () { if (ac) ac.abort(); }, ms || 8000);
+    try {
+      var r = await fetch(url, ac ? { signal: ac.signal } : undefined);
+      if (!r.ok) throw new Error('http ' + r.status);
+      return await r.json();
+    } finally { clearTimeout(tm); }
+  }
+  async function translate(text, from, to) {
+    text = String(text || '').trim();
+    if (!text || from === to) return text;
+    if (Date.now() >= googleCool) {
+      try {
+        var j = await fetchJSON('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=' + from + '&tl=' + to + '&q=' + encodeURIComponent(text));
+        var out = ((j && j[0]) || []).map(function (s) { return (s && s[0]) || ''; }).join('').trim();
+        if (out) return out;
+      } catch (e) { if (/ 429$/.test(e.message)) googleCool = Date.now() + 60000; }
+    }
+    try {
+      var j2 = await fetchJSON('https://api.mymemory.translated.net/get?langpair=' + from + '%7C' + to + '&q=' + encodeURIComponent(text.slice(0, 480)));
+      var out2 = j2 && j2.responseData && j2.responseData.translatedText;
+      if (Number(j2 && j2.responseStatus) === 200 && out2) return decodeEntities(out2).trim();
+    } catch (e) {}
+    try {
+      var j3 = await fetchJSON('https://lingva.ml/api/v1/' + from + '/' + to + '/' + encodeURIComponent(text.replace(/\//g, ' ').slice(0, 900)));
+      if (j3 && typeof j3.translation === 'string' && j3.translation.trim()) return j3.translation.trim();
+    } catch (e) {}
+    throw new Error('translate-failed');
+  }
+
+  window.Core = {
+    CONFIG: CONFIG, MQ: MQ, MiniMQTT: MiniMQTT, NtfyLink: NtfyLink, Link: Link,
+    rid: rid, newCode: newCode, normCode: normCode, validCode: validCode, fmtCode: fmtCode, parseCodeInput: parseCodeInput,
+    deriveRoom: deriveRoom, encrypt: encrypt, decrypt: decrypt, translate: translate, pack: pack, unpack: unpack, iceServers: iceServers
+  };
+})();
+</script>
+
+<script id="voice">
+/* ===== Voz: timbre y transcripción en directo del audio de la llamada (Deepgram) ===== */
+(function () {
+  'use strict';
+  var Core = window.Core;
+
+  /* Procesador de audio: pasa el sonido a 16 kHz y lo entrega en trozos de 100 ms con su volumen */
+  var WORKLET = [
+    'class Pcm16Down extends AudioWorkletProcessor {',
+    '  constructor() { super(); this.r = sampleRate / 16000; this.p = 0; this.s = 0; this.c = 0; this.b = new Int16Array(1600); this.n = 0; this.e = 0; }',
+    '  process(inputs) {',
+    '    var x = inputs[0] && inputs[0][0];',
+    '    if (!x) return true;',
+    '    for (var k = 0; k < x.length; k++) {',
+    '      this.s += x[k]; this.c++; this.p += 1;',
+    '      if (this.p >= this.r) {',
+    '        this.p -= this.r;',
+    '        var v = this.s / this.c; this.s = 0; this.c = 0;',
+    '        v = v < -1 ? -1 : v > 1 ? 1 : v;',
+    '        this.e += v * v;',
+    '        this.b[this.n++] = v < 0 ? v * 32768 : v * 32767;',
+    '        if (this.n === 1600) {',
+    '          var out = this.b;',
+    '          this.port.postMessage({ pcm: out.buffer, rms: Math.sqrt(this.e / 1600) }, [out.buffer]);',
+    '          this.b = new Int16Array(1600); this.n = 0; this.e = 0;',
+    '        }',
+    '      }',
+    '    }',
+    '    return true;',
+    '  }',
+    '}',
+    "registerProcessor('pcm16-down', Pcm16Down);"
+  ].join('\n');
+  var MODELS = ['nova-3', 'nova-2'];
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* --- Transcripción en directo con Deepgram --- */
+  function DG(o) {
+    this.o = o; this.sid = Core.rid(8); this.v = 0; this.finals = []; this.interim = ''; this.lastEmit = '';
+    var saved = String(lsGet('hk.dgm.' + o.lang) || '').split('|');
+    this.mi = saved[0] === 'nova-2' && Date.now() - Number(saved[1] || 0) < 7 * 86400000 ? 1 : 0; this.tries = 0; this.fails = 0;
+    this.paused = false; this.pre = []; this.sending = false; this.lastSpeech = 0; this.lastSent = 0; this.rms = [];
+    this.st = ''; this.stopped = true;
+  }
+  DG.prototype.start = async function () {
+    var self = this;
+    this.stopped = false;
+    try { await this.audio(); } catch (e) { this.state('error'); return; }
+    if (this.stopped) { this.teardown(); return; }
+    this.connect();
+    this.ka = setInterval(function () {
+      if (self.ws && self.ws.readyState === 1 && Date.now() - self.lastSent > 4000) self.sendJSON({ type: 'KeepAlive' });
+    }, 2000);
+  };
+  DG.prototype.audio = async function () {
+    var self = this, ctx = this.o.ctx, node = null;
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+    this.src = ctx.createMediaStreamSource(this.o.stream);
+    this.sink = ctx.createGain(); this.sink.gain.value = 0; this.sink.connect(ctx.destination);
+    if (ctx.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
+      try {
+        if (!ctx.__pcm16) ctx.__pcm16 = ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' })));
+        await ctx.__pcm16;
+        node = new AudioWorkletNode(ctx, 'pcm16-down', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
+        node.port.onmessage = function (e) { self.frame(e.data.pcm, e.data.rms); };
+      } catch (e) { node = null; }
+    }
+    if (!node) node = this.scriptNode(ctx);
+    this.node = node;
+    this.src.connect(node); node.connect(this.sink);
+  };
+  DG.prototype.scriptNode = function (ctx) {
+    var self = this, sp = ctx.createScriptProcessor(4096, 1, 1), r = ctx.sampleRate / 16000, p = 0, s = 0, c = 0, b = new Int16Array(1600), n = 0, en = 0;
+    sp.onaudioprocess = function (ev) {
+      var x = ev.inputBuffer.getChannelData(0);
+      for (var k = 0; k < x.length; k++) {
+        s += x[k]; c++; p += 1;
+        if (p >= r) {
+          p -= r; var v = s / c; s = 0; c = 0; v = v < -1 ? -1 : v > 1 ? 1 : v; en += v * v;
+          b[n++] = v < 0 ? v * 32768 : v * 32767;
+          if (n === 1600) { var out = b; self.frame(out.buffer, Math.sqrt(en / 1600)); b = new Int16Array(1600); n = 0; en = 0; }
+        }
+      }
+    };
+    return sp;
+  };
+  /* Solo se envía audio mientras alguien habla (y 1,3 s más): ahorra crédito y cada frase se cierra sola */
+  DG.prototype.frame = function (pcm, rms) {
+    if (this.stopped) return;
+    var now = Date.now();
+    if (this.paused) rms = 0;
+    this.rms.push(rms); if (this.rms.length > 50) this.rms.shift();
+    var floor = Math.min.apply(null, this.rms);
+    if (rms > Math.max(0.008, floor * 2.5)) this.lastSpeech = now;
+    if (!this.paused && now - this.lastSpeech < 1300) {
+      if (!this.sending) { this.sending = true; while (this.pre.length) this.send(this.pre.shift()); }
+      this.send(pcm);
+    } else {
+      if (this.sending) { this.sending = false; this.sendJSON({ type: 'Finalize' }); }
+      this.pre.push(pcm); if (this.pre.length > 3) this.pre.shift();
+    }
+  };
+  DG.prototype.send = function (buf) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(buf); this.lastSent = Date.now(); } catch (e) {} } };
+  DG.prototype.sendJSON = function (o) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(o)); this.lastSent = Date.now(); } catch (e) {} } };
+  DG.prototype.connect = function () {
+    var self = this;
+    if (this.stopped) return;
+    var model = MODELS[this.mi];
+    var q = 'model=' + model + '&language=' + this.o.lang + '&encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&endpointing=300&utterance_end_ms=1000';
+    var ws, openedAt = 0;
+    try { ws = new WebSocket(Core.CONFIG.dgUrl + '?' + q, ['token', this.o.key]); } catch (e) { this.retry(false); return; }
+    ws.binaryType = 'arraybuffer'; this.ws = ws;
+    ws.onopen = function () { openedAt = Date.now(); self.fails = 0; self.tries = 0; lsSet('hk.dgm.' + self.o.lang, model + '|' + Date.now()); self.state('on'); };
+    ws.onmessage = function (e) { if (typeof e.data === 'string') self.msg(e.data); };
+    ws.onerror = function () {};
+    ws.onclose = function () { if (self.ws === ws) self.ws = null; if (!self.stopped) self.retry(openedAt > 0 && Date.now() - openedAt > 5000); };
+  };
+  DG.prototype.retry = function (wasGood) {
+    var self = this;
+    clearTimeout(this.rt);
+    if (wasGood) { this.rt = setTimeout(function () { self.connect(); }, 500); return; }
+    this.tries++;
+    if (this.tries < MODELS.length) { this.mi = (this.mi + 1) % MODELS.length; this.connect(); return; }
+    this.tries = 0; this.fails++;
+    if (this.fails >= 2) this.state('error');
+    this.rt = setTimeout(function () { self.connect(); }, Math.min(30000, 2500 * this.fails));
+  };
+  DG.prototype.msg = function (s) {
+    var m; try { m = JSON.parse(s); } catch (e) { return; }
+    if (m.type === 'Results') {
+      var alt = m.channel && m.channel.alternatives && m.channel.alternatives[0];
+      var txt = alt && alt.transcript ? String(alt.transcript).trim() : '';
+      if (m.is_final) { if (txt) this.finals.push(txt); this.interim = ''; } else this.interim = txt;
+      var closing = !!(m.speech_final || m.from_finalize), full = this.text();
+      if (closing) this.close();
+      else if (full && full !== this.lastEmit) { this.lastEmit = full; this.emit(full, false); }
+    } else if (m.type === 'UtteranceEnd') this.close();
+  };
+  DG.prototype.text = function () { return (this.finals.join(' ') + ' ' + this.interim).trim(); };
+  DG.prototype.close = function () {
+    var full = this.text();
+    if (full) this.emit(full, true);
+    this.finals = []; this.interim = ''; this.lastEmit = ''; this.sid = Core.rid(8);
+  };
+  DG.prototype.emit = function (text, fin) { this.v++; try { this.o.onUpdate({ sid: this.sid, text: text, fin: fin, v: this.v }); } catch (e) { if (window.console) console.error(e); } };
+  DG.prototype.state = function (s) { if (this.st !== s) { this.st = s; try { if (this.o.onState) this.o.onState(s, this); } catch (e) {} } };
+  DG.prototype.setPaused = function (p) { this.paused = !!p; };
+  DG.prototype.teardown = function () {
+    try { if (this.node && this.node.port) this.node.port.onmessage = null; } catch (e) {}
+    try { if (this.node) this.node.onaudioprocess = null; } catch (e) {}
+    try { if (this.src) this.src.disconnect(); } catch (e) {}
+    try { if (this.node) this.node.disconnect(); } catch (e) {}
+    try { if (this.sink) this.sink.disconnect(); } catch (e) {}
+  };
+  DG.prototype.stop = function () {
+    this.stopped = true; clearInterval(this.ka); clearTimeout(this.rt);
+    var ws = this.ws; this.ws = null;
+    if (ws) { try { if (ws.readyState === 1) ws.send('{"type":"CloseStream"}'); } catch (e) {} try { ws.close(); } catch (e) {} }
+    this.teardown();
+  };
+  /* Comprueba una clave: si Deepgram acepta la conexión, la clave sirve */
+  DG.test = function (key, lang) {
+    return new Promise(function (resolve) {
+      var done = false, ws, tm;
+      var fin = function (ok) { if (done) return; done = true; clearTimeout(tm); try { if (ws) ws.close(); } catch (e) {} resolve(ok); };
+      tm = setTimeout(function () { fin(false); }, 10000);
+      try { ws = new WebSocket(Core.CONFIG.dgUrl + '?model=nova-2&language=' + (lang || 'es') + '&encoding=linear16&sample_rate=16000&channels=1', ['token', key]); } catch (e) { fin(false); return; }
+      ws.onopen = function () { try { ws.send('{"type":"CloseStream"}'); } catch (e) {} fin(true); };
+      ws.onclose = function () { fin(false); };
+      ws.onerror = function () {};
+    });
+  };
+
+  /* --- Timbre y tono de llamada, generados aquí (sin archivos de sonido) --- */
+  var Tone = {
+    ctx: null, iv: null,
+    ensure: function () {
+      if (!this.ctx) { var C = window.AudioContext || window.webkitAudioContext; if (C) { try { this.ctx = new C(); } catch (e) {} } }
+      if (this.ctx && this.ctx.state === 'suspended') { try { this.ctx.resume(); } catch (e) {} }
+      return this.ctx;
+    },
+    beep: function (f, d, at, vol) {
+      var c = this.ctx; if (!c) return;
+      try {
+        var t = c.currentTime + (at || 0), v = vol || 0.18;
+        var o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.02);
+        g.gain.setValueAtTime(v, t + d - 0.05); g.gain.linearRampToValueAtTime(0, t + d);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.05);
+      } catch (e) {}
+    },
+    ring: function () {
+      var self = this; this.stop(); this.ensure();
+      var play = function () {
+        self.beep(784, 0.16, 0); self.beep(988, 0.22, 0.2); self.beep(784, 0.16, 0.7); self.beep(988, 0.22, 0.9);
+        try { if (navigator.vibrate) navigator.vibrate([350, 150, 350]); } catch (e) {}
+      };
+      play(); this.iv = setInterval(play, 2800);
+    },
+    ringback: function () { var self = this; this.stop(); this.ensure(); var play = function () { self.beep(425, 1.0, 0, 0.1); }; play(); this.iv = setInterval(play, 4000); },
+    stop: function () { clearInterval(this.iv); this.iv = null; try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {} }
+  };
+
+  window.Voice = { DG: DG, Tone: Tone };
+})();
+</script>
+
+<script id="ui">
+/* ===== Interfaz y llamada ===== */
+(function () {
+  'use strict';
+  var Core = window.Core, Voice = window.Voice, Tone = Voice.Tone;
+  var $ = function (id) { return document.getElementById(id); };
+  var UA = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isStandalone = function () { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; };
+  var canListen = !!(window.AudioContext || window.webkitAudioContext);
+  var stopTrack = function (tr) { try { tr.stop(); } catch (e) {} };
+
+  /* Icono de la app dibujado aquí mismo (sin imágenes aparte) */
+  (function () {
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='#0a1822'/>" +
+      "<path d='M155 125h145a47 47 0 0 1 47 47v53a47 47 0 0 1-47 47h-82l-52 40 7-40h-18a47 47 0 0 1-47-47v-53a47 47 0 0 1 47-47z' fill='#e8563e'/>" +
+      "<path d='M262 238h104a47 47 0 0 1 47 47v43a47 47 0 0 1-47 47h-5l7 40-52-40h-54a47 47 0 0 1-47-47v-43a47 47 0 0 1 47-47z' fill='#14a89e' stroke='#0a1822' stroke-width='10'/>" +
+      "<text x='227' y='222' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='84' fill='#fff' text-anchor='middle'>ES</text>" +
+      "<text x='314' y='335' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='84' fill='#fff' text-anchor='middle'>TR</text></svg>";
+    var src = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    var fav = document.createElement('link'); fav.rel = 'icon'; fav.type = 'image/svg+xml'; fav.href = src; document.head.appendChild(fav);
+    document.querySelectorAll('img.logo').forEach(function (img) { img.src = src; });
+    /* el iPhone necesita el icono en PNG: se dibuja en un lienzo */
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var c = document.createElement('canvas'); c.width = c.height = 180;
+        c.getContext('2d').drawImage(img, 0, 0, 180, 180);
+        var l = document.createElement('link'); l.rel = 'apple-touch-icon'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+      } catch (e) {}
+    };
+    img.src = src;
+  })();
+
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem('hk.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem('hk.' + k, JSON.stringify(v)); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem('hk.' + k); } catch (e) {} }
+  };
+
+  var T = {
+    es: {
+      newConvTitle: 'Conectar con tu pareja',
+      newConvHelp: 'Se crea un enlace privado para los dos. Mándalo por WhatsApp y la otra persona entra con un toque.',
+      newConv: 'Crear conexión',
+      haveCodeTitle: 'Me han mandado una invitación',
+      haveCodeHelp: 'Si te llegó un enlace, ábrelo y entrarás directamente. Si tienes el código, escríbelo aquí.',
+      codePh: 'Ej.: K7QM-2XPT-9HFD',
+      badCode: 'Ese código no es válido: son 12 letras y números.',
+      join: 'Entrar',
+      install: 'Instalar la app en este móvil',
+      installShort: 'Instalar',
+      changeLang: 'Cambiar idioma o nombre',
+      settings: 'Ajustes',
+      partnerDefault: 'Tu pareja',
+      partnerMid: 'tu pareja',
+      online: 'En línea · puedes llamar',
+      offline: 'No tiene la app abierta',
+      waiting: 'Todavía no ha entrado',
+      inACall: 'En una llamada',
+      connecting: 'Conectando…',
+      noNet: 'Sin internet · reintentando…',
+      call: 'Llamar',
+      activateTitle: 'Toca para activar las llamadas',
+      activateHint: 'Así puede sonar el timbre y el micrófono queda listo. Deja la app abierta para que te puedan llamar.',
+      calling: 'Llamando…',
+      ringingRemote: 'Sonando en su móvil…',
+      noAppOpen: '{name} no tiene la app abierta. Avísale por WhatsApp para que la abra.',
+      notifyWA: 'Avisar por WhatsApp',
+      incoming: 'Te está llamando…',
+      connectingCall: 'Conectando…',
+      inCall: 'En llamada',
+      reconnecting: 'Reconectando…',
+      callEnded: 'Llamada finalizada',
+      declined: 'Ha rechazado la llamada',
+      noAnswer: 'No contesta',
+      busy: 'Está en otra llamada',
+      missed: 'Llamada perdida',
+      failed: 'No se pudo conectar. Probad otra vez, mejor con wifi.',
+      lost: 'Se ha cortado la llamada',
+      cancelled: 'Llamada cancelada',
+      micDenied: 'Sin permiso para el micrófono',
+      tapToHear: 'Toca la pantalla para oír la llamada',
+      accept: 'Aceptar',
+      decline: 'Rechazar',
+      cancel: 'Cancelar',
+      mute: 'Silenciar',
+      unmute: 'Activar micro',
+      mutedNote: 'Tu micrófono está silenciado',
+      hangup: 'Colgar',
+      textSize: 'Letra',
+      you: 'Tú',
+      theyGet: 'Le llega',
+      waitingSubs: 'Cuando {name} hable, aquí saldrá en español lo que dice.',
+      subsMissing: 'Sin subtítulos: falta la clave de Deepgram. Después de colgar toca el botón de Ajustes (arriba a la derecha) → Subtítulos.',
+      subsError: 'Los subtítulos no conectan. Revisa la clave en Ajustes o tu conexión a internet.',
+      subsOn: 'Subtítulos activados',
+      subsOnFrom: 'Subtítulos activados con la clave de {name}',
+      subsOff: 'Subtítulos sin activar · toca para configurarlos',
+      subsTitle: 'Subtítulos',
+      keyLabel: 'Clave de Deepgram',
+      keySave: 'Guardar clave',
+      keyDelete: 'Borrar',
+      keyNone: 'Sin clave: la llamada funciona, pero sin subtítulos.',
+      keySaved: 'Clave guardada ✓',
+      keyShared: 'Se le pasa cifrada a {name} automáticamente, así sus subtítulos también funcionan.',
+      keyFrom: 'Usando la clave que te pasó {name} ✓',
+      keyChecking: 'Comprobando la clave…',
+      keyBad: 'Esa clave no funciona. Cópiala otra vez entera, o revisa tu internet.',
+      keyHelp: ['Entra en console.deepgram.com y crea una cuenta gratis (te regalan 200 $ de crédito).', 'Arriba a la izquierda abre el menú Projects y elige tu proyecto. Luego toca Settings → API Keys → Create a New API Key.', 'Ponle de nombre «hablemos», deja lo demás como está y toca Create Key.', 'Copia la clave (solo se enseña una vez), toca Got it y pégala aquí arriba.'],
+      test: 'Probar subtítulos',
+      testStop: 'Parar la prueba',
+      testHint: 'Habla y mira si aparece lo que dices…',
+      testNeedKey: 'Primero guarda una clave.',
+      bigText: 'Letra grande en los subtítulos',
+      showMine: 'Mostrar también lo que digo yo',
+      inviteAgain: 'Enviar la invitación otra vez',
+      leave: 'Borrar esta conexión',
+      leaveConfirm: '¿Borrar la conexión? Para volver a llamaros necesitaréis otra invitación.',
+      codeLabel: 'Código',
+      close: 'Cerrar',
+      ready: 'Hecho',
+      shareTitle: 'Invita a tu pareja',
+      shareHelp: 'Mándale este enlace. Al abrirlo entra directamente y la app le sale en su idioma.',
+      shareWhatsApp: 'Enviar por WhatsApp',
+      shareOther: 'Compartir con otra app',
+      copyLink: 'Copiar el enlace',
+      copied: 'Enlace copiado ✓',
+      waitingBanner: '{name} todavía no ha entrado. Mándale la invitación por WhatsApp.',
+      bannerInvite: 'Enviar invitación',
+      sameLang: 'Los dos habéis elegido {lang}. Uno de los dos tiene que cambiar el idioma en Ajustes.',
+      errMic: 'No hay permiso para el micrófono. Toca el candado (o «ⓘ») a la izquierda de la dirección de la página → Permisos → Micrófono → Permitir. Después toca «Reintentar».',
+      errMicIOS: 'No hay permiso para el micrófono. Ve a Ajustes del iPhone → Apps → Safari → Micrófono → Permitir. Después toca «Reintentar».',
+      errNoMic: 'No se encuentra ningún micrófono en este aparato.',
+      errMicBusy: 'Otra app está usando el micrófono. Ciérrala y toca «Reintentar».',
+      errNoWebrtc: 'Este navegador no puede hacer llamadas. En Android abre el enlace con Google Chrome; en iPhone, con Safari.',
+      retry: 'Reintentar',
+      installTitle: 'Instalar en el móvil',
+      installAndroid: ['Abre el enlace con Google Chrome.', 'Toca el menú ⋮ (arriba a la derecha).', 'Toca «Instalar aplicación» o «Añadir a pantalla de inicio».', 'Confirma con «Instalar». Aparecerá el icono ES·TR en tu pantalla.'],
+      installIOS: ['Abre el enlace con Safari.', 'Toca el botón Compartir (el cuadrado con una flecha hacia arriba).', 'Baja y toca «Añadir a pantalla de inicio».', 'Si aparece «Abrir como app web», desactívalo: así la app se abre en Safari y no pierde la conexión con tu pareja.', 'Toca «Añadir».'],
+      installNoteIOS: 'En iPhone el icono abre la app dentro de Safari. Es normal.',
+      inviteMsg: 'Hablemos: llamadas con subtítulos traducidos. Abre este enlace:',
+      nudgeMsg: '📞 Abre Hablemos, te estoy llamando.',
+      langName: { es: 'español', tr: 'turco' }
+    },
+    tr: {
+      newConvTitle: 'Sevgilinle bağlan',
+      newConvHelp: 'İkiniz için özel bir bağlantı oluşturulur. WhatsApp ile gönder, karşındaki kişi tek dokunuşla katılsın.',
+      newConv: 'Bağlantı oluştur',
+      haveCodeTitle: 'Bana bir davet gönderildi',
+      haveCodeHelp: 'Sana bir bağlantı geldiyse açman yeterli, doğrudan katılırsın. Kodun varsa buraya yaz.',
+      codePh: 'Örn.: K7QM-2XPT-9HFD',
+      badCode: 'Bu kod geçersiz: 12 harf ve rakamdan oluşur.',
+      join: 'Katıl',
+      install: 'Uygulamayı bu telefona yükle',
+      installShort: 'Yükle',
+      changeLang: 'Dili veya adı değiştir',
+      settings: 'Ayarlar',
+      partnerDefault: 'Sevgilin',
+      partnerMid: 'sevgilin',
+      online: 'Çevrimiçi · arayabilirsin',
+      offline: 'Uygulama açık değil',
+      waiting: 'Henüz katılmadı',
+      inACall: 'Bir görüşmede',
+      connecting: 'Bağlanıyor…',
+      noNet: 'İnternet yok · tekrar deneniyor…',
+      call: 'Ara',
+      activateTitle: 'Aramaları açmak için dokun',
+      activateHint: 'Böylece zil çalabilir ve mikrofon hazır olur. Seni arayabilmesi için uygulamayı açık tut.',
+      calling: 'Aranıyor…',
+      ringingRemote: 'Telefonu çalıyor…',
+      noAppOpen: '{name} uygulamayı açmamış. Açması için WhatsApp’tan haber ver.',
+      notifyWA: 'WhatsApp ile haber ver',
+      incoming: 'Seni arıyor…',
+      connectingCall: 'Bağlanıyor…',
+      inCall: 'Görüşmede',
+      reconnecting: 'Yeniden bağlanıyor…',
+      callEnded: 'Arama sona erdi',
+      declined: 'Aramayı reddetti',
+      noAnswer: 'Cevap vermiyor',
+      busy: 'Başka bir görüşmede',
+      missed: 'Cevapsız arama',
+      failed: 'Bağlanamadı. Tekrar deneyin, Wi-Fi ile daha iyi olur.',
+      lost: 'Arama kesildi',
+      cancelled: 'Arama iptal edildi',
+      micDenied: 'Mikrofon izni yok',
+      tapToHear: 'Sesi duymak için ekrana dokun',
+      accept: 'Kabul et',
+      decline: 'Reddet',
+      cancel: 'İptal',
+      mute: 'Sessize al',
+      unmute: 'Sesi aç',
+      mutedNote: 'Mikrofonun kapalı',
+      hangup: 'Kapat',
+      textSize: 'Yazı',
+      you: 'Sen',
+      theyGet: 'Ona giden',
+      waitingSubs: 'Burada {name} konuştuğunda söyledikleri Türkçe çıkacak.',
+      subsMissing: 'Altyazı yok: Deepgram anahtarı eksik. Aramadan sonra sağ üstteki Ayarlar düğmesine dokun → Altyazılar.',
+      subsError: 'Altyazılar bağlanamıyor. Ayarlar’dan anahtarı veya internet bağlantını kontrol et.',
+      subsOn: 'Altyazılar açık',
+      subsOnFrom: 'Altyazılar açık · anahtarı {name} paylaştı',
+      subsOff: 'Altyazılar kapalı · ayarlamak için dokun',
+      subsTitle: 'Altyazılar',
+      keyLabel: 'Deepgram anahtarı',
+      keySave: 'Anahtarı kaydet',
+      keyDelete: 'Sil',
+      keyNone: 'Anahtar yok: arama çalışır ama altyazı olmaz.',
+      keySaved: 'Anahtar kaydedildi ✓',
+      keyShared: 'Altyazıları da çalışsın diye {name} ile otomatik ve şifreli olarak paylaşılır.',
+      keyFrom: 'Anahtarı {name} paylaştı, altyazılar çalışıyor ✓',
+      keyChecking: 'Anahtar kontrol ediliyor…',
+      keyBad: 'Bu anahtar çalışmıyor. Tamamını tekrar kopyala veya internetini kontrol et.',
+      keyHelp: ['console.deepgram.com adresine gir ve ücretsiz hesap aç (200 $ ücretsiz kredi verilir).', 'Sol üstteki Projects menüsünü aç ve projeni seç. Sonra Settings → API Keys → Create a New API Key’e dokun.', 'Adını «hablemos» yap, gerisini olduğu gibi bırak ve Create Key’e dokun.', 'Anahtarı kopyala (yalnızca bir kez gösterilir), Got it’e dokun ve yukarıya yapıştır.'],
+      test: 'Altyazıyı dene',
+      testStop: 'Denemeyi durdur',
+      testHint: 'Konuş ve söylediklerinin çıkıp çıkmadığına bak…',
+      testNeedKey: 'Önce bir anahtar kaydet.',
+      bigText: 'Altyazılarda büyük yazı',
+      showMine: 'Benim söylediklerimi de göster',
+      inviteAgain: 'Daveti tekrar gönder',
+      leave: 'Bu bağlantıyı sil',
+      leaveConfirm: 'Bağlantı silinsin mi? Tekrar konuşmak için yeni bir davet gerekir.',
+      codeLabel: 'Kod',
+      close: 'Kapat',
+      ready: 'Tamam',
+      shareTitle: 'Sevgilini davet et',
+      shareHelp: 'Bu bağlantıyı gönder. Açınca doğrudan katılır ve uygulama kendi dilinde açılır.',
+      shareWhatsApp: 'WhatsApp ile gönder',
+      shareOther: 'Başka bir uygulamayla paylaş',
+      copyLink: 'Bağlantıyı kopyala',
+      copied: 'Bağlantı kopyalandı ✓',
+      waitingBanner: '{name} henüz katılmadı. Daveti WhatsApp ile gönder.',
+      bannerInvite: 'Davet gönder',
+      sameLang: 'İkiniz de aynı dili seçtiniz ({lang}). Birinizin Ayarlar’dan dili değiştirmesi gerekiyor.',
+      errMic: 'Mikrofon izni yok. Adres çubuğunun solundaki kilit (veya «ⓘ») simgesine dokun → İzinler → Mikrofon → İzin ver. Sonra «Tekrar dene»ye dokun.',
+      errMicIOS: 'Mikrofon izni yok. iPhone’da Ayarlar → Uygulamalar → Safari → Mikrofon → İzin Ver. Sonra «Tekrar dene»ye dokun.',
+      errNoMic: 'Bu cihazda mikrofon bulunamadı.',
+      errMicBusy: 'Mikrofonu başka bir uygulama kullanıyor. O uygulamayı kapat ve «Tekrar dene»ye dokun.',
+      errNoWebrtc: 'Bu tarayıcı arama yapamıyor. Android’de bağlantıyı Google Chrome ile, iPhone’da Safari ile aç.',
+      retry: 'Tekrar dene',
+      installTitle: 'Telefona yükle',
+      installAndroid: ['Bağlantıyı Google Chrome ile aç.', 'Sağ üstteki ⋮ menüsüne dokun.', '«Uygulamayı yükle» veya «Ana ekrana ekle» seçeneğine dokun.', '«Yükle» ile onayla. Ana ekranında ES·TR simgesi görünecek.'],
+      installIOS: ['Bağlantıyı Safari ile aç.', 'Paylaş düğmesine dokun (yukarı oklu kare).', 'Aşağı kaydır ve «Ana Ekrana Ekle»ye dokun.', '«Web Uygulaması Olarak Aç» seçeneğini görürsen kapat: böylece uygulama Safari’de açılır ve sevgilinle bağlantın kaybolmaz.', '«Ekle»ye dokun.'],
+      installNoteIOS: 'iPhone’da simge uygulamayı Safari içinde açar. Bu normal.',
+      inviteMsg: 'Konuşalım: çevirili altyazılı aramalar. Bu bağlantıyı aç:',
+      nudgeMsg: '📞 Konuşalım’ı aç, seni arıyorum.',
+      langName: { es: 'İspanyolca', tr: 'Türkçe' }
+    }
+  };
+
+  var S = {
+    lang: store.get('lang', null),
+    name: store.get('name', ''),
+    code: store.get('code', null),
+    cid: store.get('cid', null),
+    partner: store.get('partner', null) || { name: '', lang: null, everSeen: false, stt: null },
+    settings: Object.assign({ big: false, mine: true }, store.get('settings2', {})),
+    creator: store.get('creator', false),
+    armed: false, link: null, lastSeen: 0, partnerBusy: false, invite: null, micError: null, partnerMqtt: null
+  };
+  if (!S.cid) { S.cid = 'c' + Core.rid(14); store.set('cid', S.cid); }
+  if (S.lang !== 'es' && S.lang !== 'tr') S.lang = null;
+  if (S.code && !Core.validCode(S.code)) S.code = null;
+  store.del('msgs'); store.del('settings');
+
+  function t(key, vars) {
+    var L = T[S.lang] || T.es;
+    var s = (key in L) ? L[key] : (key in T.es ? T.es[key] : key);
+    if (vars && typeof s === 'string') Object.keys(vars).forEach(function (k) { s = s.split('{' + k + '}').join(vars[k]); });
+    return s;
+  }
+  function applyI18n() {
+    document.documentElement.lang = S.lang || 'es';
+    document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t(el.dataset.t); });
+    document.querySelectorAll('[data-tp]').forEach(function (el) { el.placeholder = t(el.dataset.tp); });
+    document.querySelectorAll('[data-ta]').forEach(function (el) { el.setAttribute('aria-label', t(el.dataset.ta)); el.title = t(el.dataset.ta); });
+  }
+  var other = function (l) { return l === 'es' ? 'tr' : 'es'; };
+  var langName = function (l) { return t('langName')[l] || l; };
+  var partnerName = function () { return S.partner.name || t('partnerDefault'); };
+  var partnerMid = function () { return S.partner.name || t('partnerMid'); };
+  var partnerLang = function () { return S.partner.lang || other(S.lang); };
+  var partnerIsEs = function () { return partnerLang() === 'es'; };
+  var initial = function () { return (partnerName().trim().charAt(0) || '?').toLocaleUpperCase(partnerLang() === 'tr' ? 'tr-TR' : 'es-ES'); };
+
+  function show(id) { ['sIdioma', 'sSala', 'sInicio', 'sLlamada'].forEach(function (s) { $(s).hidden = s !== id; }); }
+
+  /* ---------- Clave de Deepgram (la tuya o la que te pasó tu pareja) ---------- */
+  function myKey() { return store.get('dgKey', '') || ''; }
+  function keyFrom() { return store.get('dgFrom', '') || ''; }
+  function keyIsOwn() { return !!myKey() && !keyFrom(); }
+  function willTranscribeSelf() { return !!myKey() && canListen; }
+
+  /* ---------- Pantalla 1: idioma ---------- */
+  var pickLang = null;
+  function openLangScreen() {
+    show('sIdioma');
+    pickLang = S.lang || (S.invite && S.invite.lang ? other(S.invite.lang) : (/^tr/i.test(navigator.language || '') ? 'tr' : null));
+    $('inNombre').value = S.name || '';
+    markLang();
+  }
+  function markLang() {
+    document.querySelectorAll('.lang').forEach(function (b) { b.classList.toggle('sel', b.dataset.lang === pickLang); });
+    $('btnIdiomaOk').disabled = !pickLang;
+    if (pickLang === 'tr') { $('lblNombre').textContent = 'Adın'; $('inNombre').placeholder = 'İsteğe bağlı'; $('btnIdiomaOk').textContent = 'Devam'; }
+    else if (pickLang === 'es') { $('lblNombre').textContent = 'Tu nombre'; $('inNombre').placeholder = 'Opcional'; $('btnIdiomaOk').textContent = 'Continuar'; }
+    else { $('lblNombre').textContent = 'Tu nombre · Adın'; $('inNombre').placeholder = 'Opcional · İsteğe bağlı'; $('btnIdiomaOk').textContent = 'Continuar · Devam'; }
+  }
+  document.querySelectorAll('.lang').forEach(function (b) { b.addEventListener('click', function () { pickLang = b.dataset.lang; markLang(); }); });
+  $('btnIdiomaOk').addEventListener('click', function () {
+    if (!pickLang) return;
+    S.lang = pickLang; S.name = $('inNombre').value.trim().slice(0, 24);
+    store.set('lang', S.lang); store.set('name', S.name);
+    applyI18n();
+    if (S.invite) { var inv = S.invite; S.invite = null; joinRoom(inv.code, inv); }
+    else if (S.code) { enterLobby(); sendHi(true, 'auto'); }
+    else openRoomScreen();
+  });
+
+  /* ---------- Pantalla 2: sala ---------- */
+  function openRoomScreen() {
+    show('sSala'); applyI18n();
+    $('inCodigo').value = ''; $('errCodigo').hidden = true;
+    refreshInstall();
+  }
+  $('btnCrear').addEventListener('click', function () { setRoom(Core.newCode(), null, true); enterLobby(); openInvite(); });
+  $('btnUnirme').addEventListener('click', function () {
+    var code = Core.parseCodeInput($('inCodigo').value);
+    if (!Core.validCode(code)) { $('errCodigo').hidden = false; return; }
+    setRoom(code, null, false); enterLobby();
+  });
+  $('inCodigo').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('btnUnirme').click(); });
+  $('btnVolverIdioma').addEventListener('click', openLangScreen);
+  $('btnInstalarSala').addEventListener('click', doInstall);
+
+  function setRoom(code, inv, creator) {
+    if (S.code !== code) {
+      if (S.link) { S.link.close(); S.link = null; }
+      S.partner = { name: (inv && inv.name) || '', lang: (inv && inv.lang) || null, everSeen: false, stt: null };
+      store.del('ntfyId'); store.del('keySentAt');
+      S.lastSeen = 0; S.partnerMqtt = null; S.partnerBusy = false;
+      S.creator = !!creator; store.set('creator', S.creator);
+    } else if (inv && inv.name && !S.partner.name) {
+      S.partner.name = inv.name;
+    }
+    store.set('partner', S.partner);
+    S.code = code; store.set('code', code);
+  }
+  function joinRoom(code, inv) { setRoom(code, inv, false); enterLobby(); }
+
+  /* ---------- Pantalla 3: inicio ---------- */
+  function enterLobby() {
+    show('sInicio'); applyI18n();
+    connect();
+    $('armar').hidden = S.armed;
+    refreshInstall();
+    ui();
+  }
+  async function arm() {
+    Tone.ensure();
+    S.armed = true; $('armar').hidden = true; S.micError = null;
+    ui();
+    try { var st = await getMic(); st.getTracks().forEach(stopTrack); }
+    catch (e) { micProblem(e); }
+  }
+  $('btnArmar').addEventListener('click', arm);
+  $('btnLlamar').addEventListener('click', function () { startCall(); });
+  $('chipSubs').addEventListener('click', openSettings);
+  $('btnAjustes').addEventListener('click', openSettings);
+  $('btnInvitarL').addEventListener('click', openInvite);
+  $('btnInstalarL').addEventListener('click', function () { store.set('instSeen', true); doInstall(); });
+
+  function getMic() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) {
+      var err = new Error('nomedia'); err.name = 'NoMedia'; return Promise.reject(err);
+    }
+    return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+  }
+  function micProblem(e) {
+    var n = e && e.name, txt;
+    if (n === 'NoMedia') txt = t('errNoWebrtc');
+    else if (n === 'NotFoundError' || n === 'OverconstrainedError') txt = t('errNoMic');
+    else if (n === 'NotReadableError' || n === 'AbortError') txt = t('errMicBusy');
+    else txt = isIOS ? t('errMicIOS') : t('errMic');
+    S.micError = { text: txt, btn: n === 'NoMedia' ? '' : t('retry'), act: function () { S.micError = null; arm(); } };
+    ui();
+  }
+
+  /* ---------- Conexión con el otro móvil ---------- */
+  var lastMqttUp = 0;
+  function connect() {
+    if (!S.code) return;
+    if (S.link && S.link.code === S.code) { S.link.wake(); return; }
+    if (S.link) S.link.close();
+    lastMqttUp = 0;
+    var link = new Core.Link({
+      code: S.code, clientId: S.cid, onEvent: onEvent,
+      onState: function () {
+        if (S.link !== link) return;
+        var n = link.mqttUp();
+        if (n > lastMqttUp) sendHi(true, 'never');
+        lastMqttUp = n;
+        ui();
+      },
+      onNtfyId: function (id) { if (S.link === link) store.set('ntfyId', id); }
+    });
+    S.link = link;
+    link.open(store.get('ntfyId', null)).then(function () { if (S.link === link) { sendHi(true, 'auto'); prepBye(link); ui(); } }).catch(function (e) { if (window.console) console.error(e); });
+  }
+  /* «Me voy» ya cifrado: al cerrar la app sale al instante y tu pareja ve enseguida que ya no estás */
+  function prepBye(link) { link.prepare({ t: 'bye' }).then(function (p) { link.bye = p; }).catch(function () {}); }
+  function sayBye() {
+    var link = S.link; if (!link) return;
+    if (link.bye) { link.sendNow(link.bye); link.bye = null; prepBye(link); }
+    else link.send({ t: 'bye' }, { ntfy: false });
+  }
+
+  var lastHiNtfy = 0, lastHiReply = 0;
+  function sendHi(ask, ntfyMode) {
+    if (!S.link || !S.link.key) return;
+    var useNtfy = false, now = Date.now();
+    if (ntfyMode !== 'never') {
+      var noMqtt = S.link.mqttUp() === 0 || S.partnerMqtt === 0;
+      if ((noMqtt && now - lastHiNtfy > 15000) || now - lastHiNtfy > 600000) { useNtfy = true; lastHiNtfy = now; }
+    }
+    S.link.send({ t: 'hi', lang: S.lang, name: S.name, ask: !!ask, m: S.link.mqttUp(), stt: willTranscribeSelf(), kopt: !!store.get('kopt', false), busy: inCall() }, { ntfy: useNtfy });
+  }
+  function shareKey(force) {
+    if (!S.link || !S.link.key || !keyIsOwn()) return;
+    if (!force && Date.now() - store.get('keySentAt', 0) < 60000) return;
+    store.set('keySentAt', Date.now());
+    S.link.send({ t: 'key', k: myKey(), name: S.name, force: !!force }, { ntfy: true });
+  }
+
+  function onEvent(obj, meta) {
+    var now = Date.now(), changed = false;
+    if (obj.t === 'hi' || obj.t === 'ring' || obj.t === 'key') {
+      if (typeof obj.name === 'string' && obj.name && obj.name.slice(0, 24) !== S.partner.name) { S.partner.name = obj.name.slice(0, 24); changed = true; }
+      if ((obj.lang === 'es' || obj.lang === 'tr') && obj.lang !== S.partner.lang) { S.partner.lang = obj.lang; changed = true; }
+    }
+    if (obj.t === 'hi' && typeof obj.stt === 'boolean' && obj.stt !== S.partner.stt) { S.partner.stt = obj.stt; changed = true; }
+    if (meta.fresh && !S.partner.everSeen) { S.partner.everSeen = true; changed = true; }
+    if (changed) store.set('partner', S.partner);
+    if (typeof obj.m === 'number') S.partnerMqtt = obj.m;
+    if (meta.fresh && obj.t !== 'bye') S.lastSeen = now;
+
+    switch (obj.t) {
+      case 'hi':
+        S.partnerBusy = !!obj.busy;
+        if (obj.ask && meta.fresh && now - lastHiReply > 2000) { lastHiReply = now; sendHi(false, 'auto'); }
+        if (meta.fresh && obj.stt === false && !obj.kopt) shareKey(false);
+        break;
+      case 'bye': if (meta.fresh) { S.lastSeen = 0; S.partnerBusy = false; } break;
+      case 'key': receiveKey(obj); break;
+      case 'ring': onRing(obj, meta); break;
+      case 'ringack': if (Call.state === 'outgoing' && obj.cid === Call.id) { Call.gotAck = true; hideNote(); } break;
+      case 'cancel': Call.done[obj.cid] = 1; if (Call.state === 'incoming' && obj.cid === Call.id) endCall('missed', false); break;
+      case 'decline': if (Call.state === 'outgoing' && obj.cid === Call.id) endCall('declined', false); break;
+      case 'busy': if (Call.state === 'outgoing' && obj.cid === Call.id) endCall('busy', false); break;
+      case 'accept': if (Call.state === 'outgoing' && obj.cid === Call.id) connectAsCaller(obj); break;
+      case 'offer': if (Call.state === 'connecting' && !Call.outgoing && obj.cid === Call.id) answerOffer(obj); break;
+      case 'answer': if (Call.outgoing && obj.cid === Call.id) gotAnswer(obj); break;
+      case 'hangup': Call.done[obj.cid] = 1; if (obj.cid === Call.id && inCall()) endCall('ended', false); break;
+      case 'sub': case 'caps': if (obj.cid === Call.id && inCall()) callData(obj); break;
+    }
+    ui();
+  }
+  function receiveKey(obj) {
+    if (typeof obj.k !== 'string' || obj.k.length < 10 || obj.k.length > 200 || keyIsOwn() || obj.k === myKey()) return;
+    if (store.get('kopt', false) && !obj.force) return;
+    store.del('kopt');
+    store.set('dgKey', obj.k); store.set('dgFrom', String(obj.name || partnerMid()).slice(0, 24));
+    sendHi(false, 'auto');
+    if (Call.state === 'active') planSTT();
+  }
+
+  /* ---------- Llamada ---------- */
+  var Call = {
+    state: 'idle', id: null, outgoing: false, peer: null, pc: null, dc: null, local: null, remote: null, gotAck: false, gotOffer: false,
+    ringIv: null, timeout: null, noteTimer: null, discTimer: null, timerIv: null, capsTimer: null, endTimer: null,
+    startedAt: 0, partnerCaps: null, sentCaps: null, stt: { local: null, remote: null }, muted: false, reconnecting: false,
+    endedMsg: '', sttError: false, needTap: false, done: {}
+  };
+  function inCall() { return Call.state !== 'idle' && Call.state !== 'ended'; }
+  function setCallState(st) { Call.state = st; renderCall(); ui(); }
+  function prepCall(cid, outgoing, peer) {
+    clearTimeout(Call.endTimer);
+    Call.id = cid; Call.outgoing = outgoing; Call.peer = peer || null; Call.gotAck = false; Call.gotOffer = false;
+    Call.partnerCaps = null; Call.sentCaps = null; Call.muted = false; Call.reconnecting = false; Call.startedAt = 0;
+    Call.endedMsg = ''; Call.sttError = false; Call.needTap = false;
+    closeAllDialogs(); stopTest(); resetSubs(); hideNote();
+    show('sLlamada');
+  }
+
+  async function startCall() {
+    if (inCall() || !S.link || !S.link.key) return;
+    Tone.ensure(); S.armed = true; $('armar').hidden = true;
+    var cid = Core.rid(10);
+    prepCall(cid, true, null);
+    setCallState('outgoing');
+    var stream;
+    try { stream = await getMic(); }
+    catch (e) { if (Call.id === cid && Call.state === 'outgoing') { micProblem(e); endCall('mic', false); } return; }
+    if (Call.id !== cid || Call.state !== 'outgoing') { stream.getTracks().forEach(stopTrack); return; }
+    Call.local = stream;
+    keepAwake();
+    Tone.ringback();
+    var n = 0;
+    var ring = function () {
+      if (Call.state !== 'outgoing' || Call.id !== cid) return;
+      S.link.send({ t: 'ring', cid: cid, name: S.name, lang: S.lang }, { ntfy: n % 3 === 1 && !Call.gotAck });
+      n++;
+    };
+    ring(); Call.ringIv = setInterval(ring, 2500);
+    Call.noteTimer = setTimeout(function () { if (Call.state === 'outgoing' && Call.id === cid && !Call.gotAck) showNoApp(); }, 8000);
+    Call.timeout = setTimeout(function () {
+      if (Call.state === 'outgoing' && Call.id === cid) { S.link.send({ t: 'cancel', cid: cid }, { ntfy: true }); endCall('noAnswer', false); }
+    }, Core.CONFIG.ringTimeout);
+  }
+
+  function armIncomingTimeout() {
+    var cid = Call.id;
+    clearTimeout(Call.timeout);
+    Call.timeout = setTimeout(function () { if (Call.state === 'incoming' && Call.id === cid) endCall('missed', false); }, 13000);
+  }
+  function onRing(obj, meta) {
+    if (!meta.fresh || meta.age > 30000 || typeof obj.cid !== 'string' || Call.done[obj.cid] || !S.lang || !S.code) return;
+    if (!inCall()) {
+      prepCall(obj.cid, false, obj.f);
+      setCallState('incoming');
+      Tone.ring(); keepAwake();
+      armIncomingTimeout();
+      S.link.send({ t: 'ringack', cid: obj.cid });
+    } else if (Call.state === 'incoming' && obj.cid === Call.id) {
+      armIncomingTimeout();
+      S.link.send({ t: 'ringack', cid: obj.cid }, { ntfy: false });
+    } else if (Call.state === 'outgoing' && obj.cid !== Call.id) {
+      /* los dos habéis llamado a la vez: el móvil con el identificador mayor contesta la llamada del otro */
+      if (S.cid > String(obj.f || '')) {
+        var mine = Call.id;
+        clearInterval(Call.ringIv); clearTimeout(Call.timeout); clearTimeout(Call.noteTimer); Tone.stop(); hideNote();
+        Call.done[mine] = 1;
+        S.link.send({ t: 'cancel', cid: mine }, { ntfy: false });
+        Call.id = obj.cid; Call.outgoing = false; Call.peer = obj.f || null; Call.state = 'incoming';
+        acceptCall();
+      }
+    } else if ((Call.state === 'active' || Call.state === 'connecting') && obj.cid !== Call.id) {
+      S.link.send({ t: 'busy', cid: obj.cid }, { ntfy: false });
+    }
+  }
+
+  async function acceptCall() {
+    if (Call.state !== 'incoming') return;
+    Tone.ensure(); Tone.stop(); clearTimeout(Call.timeout);
+    S.armed = true; $('armar').hidden = true;
+    var cid = Call.id;
+    setCallState('connecting');
+    if (!Call.local) {
+      var stream;
+      try { stream = await getMic(); }
+      catch (e) { if (Call.id === cid && inCall()) { micProblem(e); S.link.send({ t: 'decline', cid: cid }, { ntfy: true }); endCall('mic', false); } return; }
+      if (Call.id !== cid || !inCall()) { stream.getTracks().forEach(stopTrack); return; }
+      Call.local = stream;
+    }
+    keepAwake();
+    S.link.send({ t: 'accept', cid: cid, stt: willTranscribeSelf() }, { ntfy: true });
+    Call.timeout = setTimeout(function () { if (Call.state === 'connecting' && Call.id === cid) endCall('failed'); }, 30000);
+  }
+  function declineCall() {
+    if (Call.state !== 'incoming') return;
+    S.link.send({ t: 'decline', cid: Call.id }, { ntfy: true });
+    endCall('declinedByMe', false);
+  }
+  function cancelCall() {
+    if (Call.state !== 'outgoing') return;
+    S.link.send({ t: 'cancel', cid: Call.id }, { ntfy: true });
+    endCall('cancelled', false);
+  }
+
+  /* Reúne los caminos por los que puede ir la llamada: hasta que el navegador acaba, o cuando ya hay alguno por internet
+     y llevan 0,7 s sin aparecer más, o como mucho unos segundos */
+  function iceDone(pc) {
+    return new Promise(function (resolve) {
+      var net = false, quiet = null, done = false;
+      var fin = function () { if (done) return; done = true; clearTimeout(cap); clearTimeout(quiet); resolve(); };
+      var cap = setTimeout(fin, Core.CONFIG.iceWait);
+      pc.addEventListener('icegatheringstatechange', function () { if (pc.iceGatheringState === 'complete') fin(); });
+      pc.addEventListener('icecandidate', function (e) {
+        if (!e.candidate) { fin(); return; }
+        if (/ typ (srflx|relay)/.test(e.candidate.candidate || '')) net = true;
+        if (net) { clearTimeout(quiet); quiet = setTimeout(fin, 700); }
+      });
+    });
+  }
+  async function makePC(cid) {
+    var servers = await Core.iceServers();
+    if (Call.id !== cid || !inCall() || !Call.local) return null;
+    var pc = new RTCPeerConnection({ iceServers: servers });
+    Call.pc = pc;
+    Call.local.getTracks().forEach(function (tr) { pc.addTrack(tr, Call.local); });
+    pc.ontrack = function (e) {
+      if (Call.pc !== pc) return;
+      Call.remote = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
+      playRemote();
+      planSTT();
+    };
+    pc.onconnectionstatechange = function () { pcState(pc); };
+    pc.oniceconnectionstatechange = function () { pcState(pc); };
+    return pc;
+  }
+  function playRemote() {
+    var a = $('remoteAudio');
+    if (!Call.remote) return;
+    if (a.srcObject !== Call.remote) a.srcObject = Call.remote;
+    var p = a.play();
+    if (p && p.catch) p.catch(function () { if (Call.remote) { Call.needTap = true; renderCall(); } });
+  }
+  document.addEventListener('click', function () { if (Call.needTap && Call.remote) { Call.needTap = false; playRemote(); renderCall(); } }, true);
+
+  function pcState(pc) {
+    if (pc !== Call.pc) return;
+    var s = pc.connectionState || pc.iceConnectionState;
+    if (s === 'connected' || s === 'completed') {
+      clearTimeout(Call.discTimer); Call.discTimer = null;
+      if (Call.state === 'connecting') {
+        clearTimeout(Call.timeout); Call.startedAt = Date.now();
+        setCallState('active'); startTimer(); playRemote(); planSTT(); sendCaps(true);
+      } else if (Call.reconnecting) { Call.reconnecting = false; renderCall(); }
+    } else if (s === 'disconnected') {
+      if (Call.state === 'active' && !Call.discTimer) {
+        Call.reconnecting = true; renderCall();
+        Call.discTimer = setTimeout(function () { Call.discTimer = null; if (Call.pc === pc && Call.reconnecting) endCall('lost'); }, 15000);
+      }
+    } else if (s === 'failed') {
+      endCall(Call.state === 'active' ? 'lost' : 'failed');
+    }
+  }
+  async function connectAsCaller(obj) {
+    clearInterval(Call.ringIv); clearTimeout(Call.timeout); clearTimeout(Call.noteTimer); Tone.stop(); hideNote();
+    if (typeof obj.stt === 'boolean') Call.partnerCaps = { stt: obj.stt };
+    Call.peer = obj.f || Call.peer;
+    var cid = Call.id;
+    setCallState('connecting');
+    try {
+      var pc = await makePC(cid);
+      if (!pc) return;
+      Call.dc = pc.createDataChannel('subs', { ordered: true }); wireDC(Call.dc, pc);
+      var gathered = iceDone(pc);
+      await pc.setLocalDescription(await pc.createOffer());
+      await gathered;
+      if (Call.id !== cid || Call.pc !== pc) return;
+      S.link.send({ t: 'offer', cid: cid, sdp: await Core.pack(pc.localDescription.sdp), stt: willTranscribeSelf() }, { ntfy: true });
+    } catch (e) { if (window.console) console.error(e); if (Call.id === cid) endCall('failed'); return; }
+    Call.timeout = setTimeout(function () { if (Call.state === 'connecting' && Call.id === cid) endCall('failed'); }, 30000);
+  }
+  async function answerOffer(obj) {
+    if (Call.gotOffer) return;
+    Call.gotOffer = true;
+    if (typeof obj.stt === 'boolean') Call.partnerCaps = { stt: obj.stt };
+    var cid = Call.id;
+    try {
+      var pc = await makePC(cid);
+      if (!pc) return;
+      pc.ondatachannel = function (e) { if (Call.pc === pc) { Call.dc = e.channel; wireDC(Call.dc, pc); } };
+      await pc.setRemoteDescription({ type: 'offer', sdp: await Core.unpack(obj.sdp) });
+      var gathered = iceDone(pc);
+      await pc.setLocalDescription(await pc.createAnswer());
+      await gathered;
+      if (Call.id !== cid || Call.pc !== pc) return;
+      S.link.send({ t: 'answer', cid: cid, sdp: await Core.pack(pc.localDescription.sdp) }, { ntfy: true });
+    } catch (e) { if (window.console) console.error(e); if (Call.id === cid) endCall('failed'); }
+  }
+  async function gotAnswer(obj) {
+    var pc = Call.pc;
+    if (!pc || pc.signalingState !== 'have-local-offer') return;
+    try { await pc.setRemoteDescription({ type: 'answer', sdp: await Core.unpack(obj.sdp) }); }
+    catch (e) { if (window.console) console.error(e); endCall('failed'); }
+  }
+
+  function endCall(reason, notify) {
+    var was = Call.state, cid = Call.id;
+    if (!inCall()) return;
+    if (notify !== false && cid && S.link && (was === 'active' || was === 'connecting')) {
+      if (Call.dc && Call.dc.readyState === 'open') { try { Call.dc.send(JSON.stringify({ t: 'hangup' })); } catch (e) {} }
+      S.link.send({ t: 'hangup', cid: cid }, { ntfy: true });
+    }
+    if (cid) Call.done[cid] = 1;
+    clearInterval(Call.ringIv); clearTimeout(Call.timeout); clearTimeout(Call.noteTimer); clearTimeout(Call.discTimer); clearInterval(Call.timerIv); clearTimeout(Call.capsTimer);
+    Call.discTimer = null; Call.capsTimer = null;
+    Tone.stop();
+    stopSTT();
+    if (Call.pc) { try { Call.pc.close(); } catch (e) {} }
+    if (Call.local) Call.local.getTracks().forEach(stopTrack);
+    var a = $('remoteAudio'); try { a.pause(); } catch (e) {} a.srcObject = null;
+    var dur = Call.startedAt ? Date.now() - Call.startedAt : 0;
+    Call.pc = null; Call.dc = null; Call.local = null; Call.remote = null; Call.partnerCaps = null; Call.muted = false;
+    Call.reconnecting = false; Call.startedAt = 0; Call.needTap = false; Call.sttError = false;
+    Call.endedMsg = endText(reason, dur);
+    setCallState('ended');
+    releaseAwake();
+    clearTimeout(Call.endTimer);
+    Call.endTimer = setTimeout(function () {
+      if (Call.state !== 'ended') return;
+      Call.state = 'idle'; Call.id = null;
+      if (S.code && S.lang) { enterLobby(); sendHi(false, 'auto'); } else openRoomScreen();
+    }, reason === 'failed' || reason === 'missed' || reason === 'mic' ? 4500 : 2600);
+  }
+  function endText(reason, dur) {
+    if (reason === 'ended') {
+      var s = Math.round(dur / 1000);
+      return t('callEnded') + (dur ? ' · ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : '');
+    }
+    var map = { declined: 'declined', declinedByMe: 'callEnded', noAnswer: 'noAnswer', busy: 'busy', missed: 'missed', failed: 'failed', lost: 'lost', cancelled: 'cancelled', mic: 'micDenied' };
+    return t(map[reason] || 'callEnded');
+  }
+  function startTimer() {
+    clearInterval(Call.timerIv);
+    var tick = function () {
+      if (!Call.startedAt) return;
+      var s = Math.floor((Date.now() - Call.startedAt) / 1000);
+      $('timer').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    };
+    tick(); Call.timerIv = setInterval(tick, 1000);
+  }
+
+  /* Datos de la llamada (subtítulos y capacidades): por el canal directo de la llamada y, si aún no está abierto, por la sala */
+  function wireDC(dc, pc) {
+    dc.onopen = function () { if (Call.pc === pc) sendCaps(true); };
+    dc.onmessage = function (e) { if (Call.pc !== pc) return; var m; try { m = JSON.parse(e.data); } catch (x) { return; } callData(m); };
+  }
+  function sendCallData(obj) {
+    if (Call.dc && Call.dc.readyState === 'open') { try { Call.dc.send(JSON.stringify(obj)); return; } catch (e) {} }
+    if (S.link && Call.id && inCall()) S.link.send(Object.assign({}, obj, { cid: Call.id }), { ntfy: false });
+  }
+  function capsNow() { var l = Call.stt.local; return l ? l.st !== 'error' : willTranscribeSelf(); }
+  function sendCaps(force) {
+    if (Call.state !== 'active' && Call.state !== 'connecting') return;
+    var c = capsNow();
+    if (!force && c === Call.sentCaps) return;
+    Call.sentCaps = c;
+    sendCallData({ t: 'caps', stt: c });
+  }
+  function callData(m) {
+    if (!m || typeof m !== 'object') return;
+    if (m.t === 'sub') showSub(m);
+    else if (m.t === 'caps') { Call.partnerCaps = { stt: !!m.stt }; planSTT(); }
+    else if (m.t === 'hangup') { if (Call.state === 'active' || Call.state === 'connecting') endCall('ended', false); }
+  }
+
+  /* ---------- Subtítulos ---------- */
+  var Subs = { list: [], mine: null };
+  function resetSubs() { Subs.list = []; Subs.mine = null; renderSubs(); }
+
+  /* Traduce lo que se va reconociendo sin saturar el traductor: lo provisional como mucho cada 2 s, lo definitivo enseguida */
+  function translator(from, to, done) {
+    var st = {};
+    function run(sid) {
+      var s = st[sid]; if (!s || !s.latest || s.busy) return;
+      var seg = s.latest; s.latest = null; s.last = Date.now(); s.busy = true;
+      Core.translate(seg.text, from, to).catch(function () { return null; }).then(function (tr) {
+        s.busy = false;
+        done(seg, tr);
+        if (s.latest) plan(sid); else if (seg.fin) delete st[sid];
+      });
+    }
+    function plan(sid) {
+      var s = st[sid]; clearTimeout(s.timer);
+      var wait = s.latest.fin ? 0 : Math.max(0, 2000 - (Date.now() - s.last));
+      s.timer = setTimeout(function () { run(sid); }, wait);
+    }
+    return function (seg) {
+      var s = st[seg.sid] || (st[seg.sid] = { last: 0, timer: null, latest: null, busy: false });
+      s.latest = seg; plan(seg.sid);
+    };
+  }
+  /* Cada trozo reconocido sale enseguida sin traducir y luego otra vez con su traducción; el otro móvil lo recibe igual */
+  function makeRelay(from, to, spk) {
+    var out = function (seg, tr, fin) {
+      if (!inCall()) return;
+      var m = { t: 'sub', sid: seg.sid, spk: spk, lang: from, o: seg.text, tr: tr, fin: fin, v: seg.v };
+      showSub(m); sendCallData(m);
+    };
+    var tl = translator(from, to, function (seg, tr) { out(seg, tr, seg.fin); });
+    return function (seg) { if (!inCall()) return; out(seg, null, false); tl(seg); };
+  }
+
+  function planSTT() {
+    if (Call.state !== 'active' || !Call.local) return;
+    var key = myKey(), ctx = key && canListen ? Tone.ensure() : null;
+    if (!Call.stt.local && ctx) {
+      Call.stt.local = new Voice.DG({ key: key, lang: S.lang, stream: Call.local, ctx: ctx, onUpdate: makeRelay(S.lang, partnerLang(), S.cid), onState: sttState });
+      Call.stt.local.start();
+      if (Call.muted) Call.stt.local.setPaused(true);
+    }
+    var partnerCant = !!(Call.partnerCaps && !Call.partnerCaps.stt);
+    if (partnerCant && ctx && Call.remote && !Call.stt.remote) {
+      Call.stt.remote = new Voice.DG({ key: key, lang: partnerLang(), stream: Call.remote, ctx: ctx, onUpdate: makeRelay(partnerLang(), S.lang, Call.peer || 'p'), onState: sttState });
+      Call.stt.remote.start();
+    } else if (!partnerCant && Call.stt.remote && Call.partnerCaps) {
+      Call.stt.remote.stop(); Call.stt.remote = null;
+    }
+    if (!Call.partnerCaps && !Call.capsTimer) {
+      Call.capsTimer = setTimeout(function () { Call.capsTimer = null; if (!Call.partnerCaps && Call.state === 'active') { Call.partnerCaps = { stt: false }; planSTT(); } }, 5000);
+    }
+    sendCaps(false);
+    renderSubs();
+  }
+  function stopSTT() {
+    if (Call.stt.local) { try { Call.stt.local.stop(); } catch (e) {} }
+    if (Call.stt.remote) { try { Call.stt.remote.stop(); } catch (e) {} }
+    Call.stt.local = null; Call.stt.remote = null;
+  }
+  function sttState() {
+    var l = Call.stt.local, r = Call.stt.remote;
+    Call.sttError = !!((l && l.st === 'error') || (r && r.st === 'error'));
+    sendCaps(false);
+    renderCall();
+  }
+
+  /* Lo que dije yo va a la línea «Tú»; lo que dijo mi pareja sale en grande, traducido */
+  function showSub(m) {
+    if (!m || typeof m.o !== 'string' || typeof m.sid !== 'string') return;
+    var v = Number(m.v) || 0, from = m.lang === 'tr' ? 'tr' : 'es';
+    if (m.spk === S.cid) {
+      var mi = Subs.mine;
+      if (!mi || mi.sid !== m.sid) {
+        if (mi && v < mi.oV) return;
+        mi = Subs.mine = { sid: m.sid, o: '', tr: '', oV: -1, trV: -1 };
+      }
+      if (v >= mi.oV) { mi.o = m.o; mi.oV = v; }
+      if (m.tr && v >= mi.trV) { mi.tr = m.tr; mi.trV = v; }
+      renderMine(); return;
+    }
+    var it = null;
+    for (var i = 0; i < Subs.list.length; i++) if (Subs.list[i].sid === m.sid) it = Subs.list[i];
+    if (!it) {
+      it = { sid: m.sid, o: '', tr: '', oV: -1, trV: -1, fin: false, fixing: false };
+      Subs.list.push(it); if (Subs.list.length > 4) Subs.list.shift();
+    }
+    if (v >= it.oV) { it.o = m.o; it.oV = v; }
+    if (from === S.lang) { if (v >= it.trV) { it.tr = m.o; it.trV = v; } }
+    else if (m.tr && v >= it.trV) { it.tr = m.tr; it.trV = v; }
+    if (m.fin) {
+      it.fin = true;
+      if (!m.tr && from !== S.lang && !it.fixing) {
+        it.fixing = true;
+        var src = m.o;
+        Core.translate(src, from, S.lang).then(function (tr) { if (tr && it.o === src) { it.tr = tr; renderSubs(); } }).catch(function () {});
+      }
+    }
+    renderSubs();
+  }
+  function renderSubs() {
+    var box = $('subsBox');
+    box.textContent = '';
+    box.classList.toggle('big', !!S.settings.big);
+    if (!Subs.list.length) {
+      var p = document.createElement('p'); p.className = 'subsEmpty';
+      var possible = !Call.partnerCaps || Call.partnerCaps.stt || (!!myKey() && canListen);
+      p.textContent = possible ? t('waitingSubs', { name: partnerMid() }) : t('subsMissing');
+      box.appendChild(p);
+    } else {
+      Subs.list.forEach(function (it, i) {
+        var d = document.createElement('div');
+        d.className = 'sub' + (i === Subs.list.length - 1 ? ' now' : '') + (it.fin ? '' : ' live');
+        var a = document.createElement('p'); a.className = 'tr'; a.textContent = it.tr || '…';
+        d.appendChild(a);
+        if (it.o && it.o !== it.tr) { var b = document.createElement('p'); b.className = 'o'; b.textContent = it.o; d.appendChild(b); }
+        box.appendChild(d);
+      });
+    }
+    renderMine();
+  }
+  function renderMine() {
+    var mi = Subs.mine, on = !!(S.settings.mine && mi && mi.o && Call.state === 'active');
+    $('mine').hidden = !on;
+    if (!on) return;
+    $('mineO').textContent = mi.o;
+    $('mineTr').textContent = mi.tr && mi.tr !== mi.o ? t('theyGet') + ': ' + mi.tr : '';
+  }
+
+  /* ---------- Pantalla de llamada ---------- */
+  function nudgeText() {
+    var es = T.es.nudgeMsg, tr = T.tr.nudgeMsg;
+    return (S.lang === 'tr' ? tr + '\n' + es : es + '\n' + tr) + '\n' + inviteLink();
+  }
+  function showNoApp() {
+    $('callNoteTxt').textContent = t('noAppOpen', { name: partnerName() });
+    var b = $('callNoteBtn'); b.hidden = false; b.textContent = t('notifyWA');
+    b.href = 'https://wa.me/?text=' + encodeURIComponent(nudgeText());
+    $('callNote').hidden = false;
+  }
+  function hideNote() { $('callNote').hidden = true; $('callNoteBtn').hidden = true; }
+  function renderCall() {
+    if ($('sLlamada').hidden) return;
+    var st = Call.state, active = st === 'active', es = partnerIsEs(), txt = '';
+    $('nameC').textContent = partnerName(); $('nameR').textContent = partnerName();
+    $('inicialC').textContent = initial(); $('inicialR').textContent = initial();
+    $('avC').classList.toggle('es', es); $('avR').classList.toggle('es', es);
+    if (st === 'outgoing') txt = Call.gotAck ? t('ringingRemote') : t('calling');
+    else if (st === 'incoming') txt = t('incoming');
+    else if (st === 'connecting') txt = t('connectingCall');
+    else if (active) txt = Call.reconnecting ? t('reconnecting') : Call.muted ? t('mutedNote') : t('inCall');
+    else if (st === 'ended') txt = Call.endedMsg;
+    $('stateC').textContent = txt; $('stateR').textContent = txt;
+    $('callTop').hidden = !active;
+    $('ringView').hidden = active;
+    $('ringView').classList.toggle('still', st === 'ended');
+    $('subsBox').hidden = !active;
+    if (!active) $('timer').textContent = '';
+    $('ctlIncoming').hidden = st !== 'incoming';
+    $('ctlOutgoing').hidden = st !== 'outgoing';
+    $('ctlActive').hidden = !(active || st === 'connecting');
+    $('btnMute').classList.toggle('on', Call.muted);
+    $('btnMute').disabled = !active;
+    $('btnTam').classList.toggle('on', !!S.settings.big);
+    $('muteLbl').textContent = Call.muted ? t('unmute') : t('mute');
+    if (active && Call.needTap) { $('callNoteTxt').textContent = t('tapToHear'); $('callNoteBtn').hidden = true; $('callNote').hidden = false; }
+    else if (active && Call.sttError) { $('callNoteTxt').textContent = t('subsError'); $('callNoteBtn').hidden = true; $('callNote').hidden = false; }
+    else if (st !== 'outgoing') hideNote();
+    renderSubs();
+  }
+  $('btnAceptar').addEventListener('click', acceptCall);
+  $('btnRechazar').addEventListener('click', declineCall);
+  $('btnCancelar').addEventListener('click', cancelCall);
+  $('btnColgar').addEventListener('click', function () { if (Call.state === 'connecting' || Call.state === 'active') endCall('ended'); });
+  $('btnMute').addEventListener('click', function () {
+    if (Call.state !== 'active' || !Call.local) return;
+    Call.muted = !Call.muted;
+    Call.local.getAudioTracks().forEach(function (tr) { tr.enabled = !Call.muted; });
+    if (Call.stt.local) Call.stt.local.setPaused(Call.muted);
+    renderCall();
+  });
+  $('btnTam').addEventListener('click', function () { S.settings.big = !S.settings.big; saveSettings(); renderCall(); });
+
+  var wakeLock = null;
+  async function keepAwake() {
+    if (!('wakeLock' in navigator) || document.hidden || wakeLock) return;
+    try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', function () { wakeLock = null; }); } catch (e) { wakeLock = null; }
+  }
+  function releaseAwake() { if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; } }
+
+  /* ---------- Inicio: estado de tu pareja ---------- */
+  var bannerAct = null;
+  function refreshBanner() {
+    var txt = '', btn = '', act = null;
+    if (S.micError) { txt = S.micError.text; btn = S.micError.btn; act = S.micError.act; }
+    else if (S.partner.lang && S.partner.lang === S.lang) { txt = t('sameLang', { lang: langName(S.lang) }); btn = t('changeLang'); act = openLangScreen; }
+    else if (S.creator && !S.partner.everSeen && !S.lastSeen) { txt = t('waitingBanner', { name: partnerName() }); btn = t('bannerInvite'); act = openInvite; }
+    var b = $('banner');
+    if (!txt) { b.hidden = true; bannerAct = null; return; }
+    b.hidden = false; $('bannerTxt').textContent = txt;
+    var bb = $('bannerBtn'); bb.hidden = !btn; bb.textContent = btn; bannerAct = act;
+  }
+  $('bannerBtn').addEventListener('click', function () { if (bannerAct) bannerAct(); });
+
+  function ui() {
+    if (!$('sInicio').hidden) {
+      var online = !!S.lastSeen && Date.now() - S.lastSeen < 70000;
+      var linkUp = !!(S.link && S.link.up());
+      $('nameL').textContent = partnerName();
+      $('inicialL').textContent = initial();
+      $('avL').classList.toggle('es', partnerIsEs());
+      $('avL').classList.toggle('on', online);
+      $('stateL').textContent = !linkUp ? (navigator.onLine === false ? t('noNet') : t('connecting')) : online ? (S.partnerBusy ? t('inACall') : t('online')) : (S.partner.everSeen ? t('offline') : t('waiting'));
+      $('btnLlamar').disabled = !linkUp;
+      var on = true, txt;
+      if (myKey()) txt = keyFrom() ? t('subsOnFrom', { name: keyFrom() }) : t('subsOn');
+      else if (S.partner.stt) txt = t('subsOnFrom', { name: partnerMid() });
+      else { on = false; txt = t('subsOff'); }
+      $('chipSubs').classList.toggle('off', !on); $('subsTxt').textContent = txt;
+      refreshBanner();
+    }
+    if (!$('sLlamada').hidden) renderCall();
+  }
+
+  /* ---------- Ajustes ---------- */
+  function saveSettings() { store.set('settings2', S.settings); }
+  function renderKeyBox(msg, cls) {
+    var st = $('keyStatus');
+    st.className = 'keyStatus' + (cls ? ' ' + cls : '');
+    if (msg) st.textContent = msg;
+    else if (myKey()) { st.className = 'keyStatus ok'; st.textContent = keyFrom() ? t('keyFrom', { name: keyFrom() }) : t('keySaved') + ' ' + t('keyShared', { name: partnerMid() }); }
+    else st.textContent = t('keyNone');
+    $('inKey').placeholder = myKey() ? '••••••••••••••••' : '';
+    $('btnKeyDel').hidden = !myKey();
+    var ol = $('keyHelp'); ol.textContent = ''; ol.hidden = !!myKey();
+    if (!myKey()) t('keyHelp').forEach(function (s) { var li = document.createElement('li'); li.textContent = s; ol.appendChild(li); });
+  }
+  function openSettings() {
+    $('optBig').checked = !!S.settings.big;
+    $('optMine').checked = !!S.settings.mine;
+    $('inKey').value = '';
+    renderKeyBox();
+    $('testBox').hidden = true;
+    $('btnTest').textContent = t('test');
+    $('codigoActual').textContent = Core.fmtCode(S.code || '');
+    $('btnInstalarAj').hidden = isStandalone();
+    openDialog('dlgAjustes');
+  }
+  $('btnKeySave').addEventListener('click', async function () {
+    var k = $('inKey').value.trim().replace(/\s+/g, '');
+    if (!k) { $('inKey').focus(); return; }
+    var btn = $('btnKeySave'); btn.disabled = true;
+    renderKeyBox(t('keyChecking'));
+    var ok = await Voice.DG.test(k, S.lang);
+    btn.disabled = false;
+    if (!ok) { renderKeyBox(t('keyBad'), 'bad'); return; }
+    store.set('dgKey', k); store.del('dgFrom'); store.del('kopt');
+    $('inKey').value = '';
+    renderKeyBox();
+    sendHi(false, 'auto'); shareKey(true);
+    ui();
+  });
+  $('btnKeyDel').addEventListener('click', function () {
+    var received = !!keyFrom();
+    store.del('dgKey'); store.del('dgFrom');
+    if (received) store.set('kopt', true);
+    stopTest(); renderKeyBox(); sendHi(false, 'auto'); ui();
+  });
+  $('optBig').addEventListener('change', function (e) { S.settings.big = e.target.checked; saveSettings(); });
+  $('optMine').addEventListener('change', function (e) { S.settings.mine = e.target.checked; saveSettings(); });
+  $('btnInvitarAj').addEventListener('click', function () { closeDialog('dlgAjustes'); openInvite(); });
+  $('btnInstalarAj').addEventListener('click', function () { closeDialog('dlgAjustes'); doInstall(); });
+  $('btnCambiarIdioma').addEventListener('click', function () { closeDialog('dlgAjustes'); openLangScreen(); });
+  $('btnSalir').addEventListener('click', function () { if (!window.confirm(t('leaveConfirm'))) return; closeDialog('dlgAjustes'); leaveRoom(); });
+  $('btnCerrarAj').addEventListener('click', function () { closeDialog('dlgAjustes'); });
+  $('dlgAjustes').addEventListener('close', stopTest);
+
+  /* Prueba de subtítulos sin llamar: escucha tu micrófono 30 s y enseña lo que entiende y cómo le llega a tu pareja */
+  var Test = { dg: null, stream: null, tm: null, starting: false };
+  async function startTest() {
+    if (Test.dg || Test.starting) { stopTest(); return; }
+    $('testBox').hidden = false; $('testTr').textContent = '';
+    var key = myKey();
+    if (!key) { $('testO').textContent = t('testNeedKey'); return; }
+    if (inCall()) return;
+    var ctx = Tone.ensure();
+    Test.starting = true; $('btnTest').textContent = t('testStop');
+    var stream;
+    try { stream = await getMic(); }
+    catch (e) { Test.starting = false; $('btnTest').textContent = t('test'); $('testO').textContent = t('micDenied'); return; }
+    if (!Test.starting) { stream.getTracks().forEach(stopTrack); return; }
+    Test.starting = false; Test.stream = stream;
+    $('testO').textContent = t('testHint');
+    var shownV = -1;
+    var tl = translator(S.lang, partnerLang(), function (seg, tr) {
+      if (Test.dg && tr && seg.v >= shownV) { shownV = seg.v; $('testTr').textContent = t('theyGet') + ': ' + tr; }
+    });
+    Test.dg = new Voice.DG({
+      key: key, lang: S.lang, stream: stream, ctx: ctx,
+      onUpdate: function (seg) { $('testO').textContent = seg.text; tl(seg); },
+      onState: function (s) { if (s === 'error') $('testTr').textContent = t('subsError'); }
+    });
+    Test.dg.start();
+    Test.tm = setTimeout(stopTest, 30000);
+  }
+  function stopTest() {
+    clearTimeout(Test.tm); Test.starting = false;
+    if (Test.dg) { Test.dg.stop(); Test.dg = null; }
+    if (Test.stream) { Test.stream.getTracks().forEach(stopTrack); Test.stream = null; }
+    $('btnTest').textContent = t('test');
+  }
+  $('btnTest').addEventListener('click', startTest);
+
+  function leaveRoom() {
+    if (S.link) { var l = S.link; sayBye(); setTimeout(function () { l.close(); }, 400); S.link = null; }
+    S.code = null; store.del('code'); store.del('ntfyId'); store.del('keySentAt'); store.del('kopt');
+    if (keyFrom()) { store.del('dgKey'); store.del('dgFrom'); }
+    S.partner = { name: '', lang: null, everSeen: false, stt: null }; store.set('partner', S.partner);
+    S.lastSeen = 0; S.micError = null; S.partnerBusy = false;
+    openRoomScreen();
+  }
+
+  /* ---------- Diálogos ---------- */
+  function openDialog(id) { var d = $(id); if (typeof d.showModal === 'function') { if (!d.open) d.showModal(); } else d.setAttribute('open', ''); }
+  function closeDialog(id) { var d = $(id); if (typeof d.close === 'function') { if (d.open) d.close(); } else d.removeAttribute('open'); }
+  function closeAllDialogs() { ['dlgAjustes', 'dlgInvitar', 'dlgInstalar'].forEach(closeDialog); }
+  document.querySelectorAll('dialog').forEach(function (d) { d.addEventListener('click', function (e) { if (e.target === d) closeDialog(d.id); }); });
+
+  /* ---------- Invitación ---------- */
+  function baseUrl() { return location.origin + location.pathname; }
+  function inviteLink() { return baseUrl() + '#c=' + S.code + '&l=' + S.lang + (S.name ? '&n=' + encodeURIComponent(S.name) : ''); }
+  function inviteText() {
+    var es = T.es.inviteMsg, tr = T.tr.inviteMsg;
+    return (S.lang === 'tr' ? '🇹🇷⇄🇪🇸 ' + tr + '\n' + es : '🇪🇸⇄🇹🇷 ' + es + '\n' + tr) + '\n' + inviteLink();
+  }
+  function openInvite() {
+    if (!S.code) return;
+    $('codeBig').textContent = Core.fmtCode(S.code);
+    $('lnkWhats').href = 'https://wa.me/?text=' + encodeURIComponent(inviteText());
+    $('btnCompartir').hidden = !navigator.share;
+    $('btnCopiar').textContent = t('copyLink');
+    openDialog('dlgInvitar');
+  }
+  $('btnCompartir').addEventListener('click', function () { if (navigator.share) navigator.share({ title: 'Hablemos · Konuşalım', text: inviteText() }).catch(function () {}); });
+  $('btnCopiar').addEventListener('click', function () { copyText(inviteLink(), $('btnCopiar')); });
+  $('btnCerrarInv').addEventListener('click', function () { closeDialog('dlgInvitar'); });
+  async function copyText(text, btn) {
+    var ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; }
+    catch (e) {
+      try {
+        var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+      } catch (e2) {}
+    }
+    if (btn) { var old = btn.textContent; btn.textContent = ok ? t('copied') : text; if (ok) setTimeout(function () { btn.textContent = old; }, 2200); }
+  }
+
+  /* ---------- Instalación ---------- */
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredPrompt = e; refreshInstall(); });
+  window.addEventListener('appinstalled', function () { deferredPrompt = null; store.set('instSeen', true); refreshInstall(); });
+  function refreshInstall() {
+    var can = !isStandalone();
+    $('btnInstalarSala').hidden = !can;
+    $('btnInstalarL').hidden = !can || !!store.get('instSeen', false);
+  }
+  async function doInstall() {
+    if (deferredPrompt) {
+      var p = deferredPrompt; deferredPrompt = null;
+      try { await p.prompt(); await p.userChoice; } catch (e) {}
+      refreshInstall(); return;
+    }
+    var ol = $('pasosInstalar'); ol.textContent = '';
+    (isIOS ? t('installIOS') : t('installAndroid')).forEach(function (s) { var li = document.createElement('li'); li.textContent = s; ol.appendChild(li); });
+    $('notaInstalar').textContent = isIOS ? t('installNoteIOS') : '';
+    $('notaInstalar').hidden = !isIOS;
+    openDialog('dlgInstalar');
+  }
+  $('btnCerrarInst').addEventListener('click', function () { closeDialog('dlgInstalar'); refreshInstall(); });
+
+  /* ---------- Arranque ---------- */
+  function parseHash() {
+    var h = (location.hash || '').replace(/^#/, ''); if (!h) return null;
+    var p; try { p = new URLSearchParams(h); } catch (e) { return null; }
+    var code = Core.normCode(p.get('c') || ''); if (!Core.validCode(code)) return null;
+    var pick = function (v) { return (v === 'es' || v === 'tr') ? v : null; };
+    return { code: code, lang: pick(p.get('l')), me: pick(p.get('me')), name: String(p.get('n') || '').trim().slice(0, 24) };
+  }
+  function init() {
+    applyI18n();
+    var inv = parseHash();
+    if (inv) { try { history.replaceState(null, '', baseUrl() + location.search); } catch (e) {} }
+    if (inv && inv.me) {
+      S.lang = inv.me; store.set('lang', S.lang);
+      if (inv.name) { S.name = inv.name; store.set('name', S.name); }
+      applyI18n();
+      setRoom(inv.code, null, false);
+    } else if (inv) {
+      if (inv.code === S.code) setRoom(inv.code, inv, S.creator);
+      else S.invite = inv;
+    }
+    if (!S.lang) openLangScreen();
+    else if (S.invite) { var i = S.invite; S.invite = null; joinRoom(i.code, i); }
+    else if (S.code) enterLobby();
+    else openRoomScreen();
+
+    setInterval(function () { if (S.link && !document.hidden) sendHi(false, 'auto'); }, 20000);
+    setInterval(ui, 5000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { if (!inCall()) sayBye(); }
+      else {
+        if (S.link) { S.link.wake(); sendHi(true, 'auto'); }
+        if (S.armed) Tone.ensure();
+        if (inCall()) keepAwake();
+      }
+      ui();
+    });
+    window.addEventListener('online', function () { if (S.link) S.link.wake(); ui(); });
+    window.addEventListener('offline', ui);
+    window.addEventListener('pagehide', function () {
+      if (Call.state === 'active' || Call.state === 'connecting') endCall('ended');
+      sayBye();
+    });
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+    }
+  }
+
+  window.__app = { S: S, Call: Call, Subs: Subs, store: store, t: t, Tone: Tone };
+  init();
+})();
+</script>
+</body>
+</html>
