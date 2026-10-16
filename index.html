@@ -98,6 +98,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .mini { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .mini img { width: 34px; height: 34px; border-radius: 10px; flex: none; }
 .mini span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .ver { flex: none; padding: 2px 8px; border-radius: 999px; background: var(--turq-soft); color: var(--turq); font-size: .72rem; font-weight: 800; }
 .lobby { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
 .avatar-xl { position: relative; width: 116px; height: 116px; border-radius: 50%; background: var(--turq); color: #fff; display: grid; place-items: center; font-size: 2.7rem; font-weight: 800; flex: none; }
 .avatar-xl.es { background: var(--coral); }
@@ -131,6 +132,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .who b { font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .who small { color: rgba(238, 244, 247, .7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .timer { font-variant-numeric: tabular-nums; font-weight: 700; color: rgba(238, 244, 247, .85); }
+.callStatus { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-bottom: 4px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); font-size: .8rem; color: rgba(238, 244, 247, .72); }
+.callStatus > span { display: flex; align-items: center; gap: 7px; }
+.sdot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #6b7c88; }
+.sdot.ok { background: #3ddc84; }
+.sdot.wait { background: #e5b33a; }
+.sdot.bad { background: #ff5c5c; }
 .callNote { margin: 10px max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, .1); display: flex; flex-direction: column; gap: 10px; font-size: .95rem; }
 .notebtn { align-self: flex-start; padding: 9px 14px; border-radius: 10px; background: #1c9c4f; color: #fff; font-weight: 700; text-decoration: none; }
 .ringView { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; }
@@ -151,6 +158,10 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .sub.now .o { font-size: .95rem; color: rgba(238, 244, 247, .6); }
 .subsBox.big .sub .tr { font-size: 1.45rem; }
 .subsBox.big .sub.now .tr { font-size: 2.25rem; }
+.sub .tr.untr { font-style: italic; }
+.sub.now .tr.untr { color: rgba(238, 244, 247, .85); }
+.sub .o.warn { color: #e5b33a; }
+.sub.now .o.warn { color: #f2c75c; }
 .sub.live .tr::after { content: "▍"; margin-left: 2px; color: var(--turq); animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .mine { padding-block: 10px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-top: 1px solid rgba(255, 255, 255, .08); font-size: .9rem; color: rgba(238, 244, 247, .7); overflow-wrap: anywhere; }
@@ -246,7 +257,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
 <!-- 3 · Inicio -->
 <section id="sInicio" class="screen" hidden>
   <header class="bar">
-    <div class="mini"><img class="logo" alt=""><span>Hablemos · Konuşalım</span></div>
+    <div class="mini"><img class="logo" alt=""><span>Hablemos · Konuşalım</span><span class="ver">v3</span></div>
     <button type="button" id="btnInstalarL" class="chip" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg><span data-t="installShort"></span></button>
     <button type="button" id="btnAjustes" class="iconbtn" data-ta="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M19 6h1M4 12h2M12 12h8M4 18h7M17 18h3"/><circle cx="16" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="14" cy="18" r="2.5"/></svg></button>
   </header>
@@ -275,6 +286,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     <div class="who"><b id="nameC"></b><small id="stateC"></small></div>
     <span id="timer" class="timer"></span>
   </header>
+  <div id="callStatus" class="callStatus" hidden><span><i id="stVoice" class="sdot"></i><span data-t="stVoice"></span></span><span><i id="stTr" class="sdot"></i><span data-t="stTr"></span></span></div>
   <div id="callNote" class="callNote" hidden><span id="callNoteTxt"></span><a id="callNoteBtn" class="notebtn" href="#" target="_blank" rel="noopener" hidden></a></div>
   <div id="ringView" class="ringView">
     <div class="pulse"><div id="avR" class="avatar-xl"><span id="inicialR">?</span></div></div>
@@ -319,7 +331,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     <button type="button" class="secondary" id="btnInstalarAj" data-t="install"></button>
     <button type="button" class="secondary" id="btnCambiarIdioma" data-t="changeLang"></button>
     <button type="button" class="secondary danger" id="btnSalir" data-t="leave"></button>
-    <p class="small"><span data-t="codeLabel"></span>: <b id="codigoActual"></b></p>
+    <p class="small"><span data-t="codeLabel"></span>: <b id="codigoActual"></b> · <span data-t="version"></span></p>
     <button type="button" class="primary" id="btnCerrarAj" data-t="close"></button>
   </div>
 </dialog>
@@ -629,58 +641,86 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   Link.prototype.wake = function () { if (this.closed) return; this.mqtts.forEach(function (m) { m.kick(); }); if (this.ntfy) this.ntfy.kick(); };
   Link.prototype.close = function () { this.closed = true; this.mqtts.forEach(function (m) { m.stop(); }); if (this.ntfy) this.ntfy.stop(); };
 
-  /* --- Traducción: Google; si falla, MyMemory; si falla, Lingva --- */
-  var googleCool = 0;
+  /* --- Traducción: Google; si falla, MyMemory; si falla, Lingva.
+     Nunca se da por buena una «traducción» que devuelve la frase tal cual, sin traducir --- */
+  var googleCool = 0, googleFails = 0, tcache = new Map(), tstat = { ok: 0, fails: 0 };
   function decodeEntities(s) { return String(s).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+  function normText(s) { return String(s || '').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
+  function untranslated(out, text) { var a = normText(out), b = normText(text); return !a || (a === b && b.indexOf(' ') > 0); }
   async function fetchJSON(url, ms) {
     var ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var tm = setTimeout(function () { if (ac) ac.abort(); }, ms || 8000);
+    var tm = setTimeout(function () { if (ac) ac.abort(); }, ms || 4500);
     try {
       var r = await fetch(url, ac ? { signal: ac.signal } : undefined);
       if (!r.ok) throw new Error('http ' + r.status);
       return await r.json();
     } finally { clearTimeout(tm); }
   }
+  async function tryServices(text, from, to) {
+    if (Date.now() >= googleCool) {
+      try {
+        var j = await fetchJSON('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=' + from + '&tl=' + to + '&q=' + encodeURIComponent(text), 4500);
+        var out = ((j && j[0]) || []).map(function (s) { return (s && s[0]) || ''; }).join('').trim();
+        if (!untranslated(out, text)) { googleFails = 0; return out; }
+        throw new Error('same');
+      } catch (e) {
+        if (/ 429$/.test(e.message)) googleCool = Date.now() + 60000;
+        else if (++googleFails >= 3) { googleFails = 0; googleCool = Date.now() + 30000; }
+      }
+    }
+    try {
+      var j2 = await fetchJSON('https://api.mymemory.translated.net/get?langpair=' + from + '%7C' + to + '&q=' + encodeURIComponent(text.slice(0, 480)), 4500);
+      var out2 = j2 && j2.responseData && j2.responseData.translatedText;
+      if (Number(j2 && j2.responseStatus) === 200 && out2 && !untranslated(decodeEntities(out2), text)) return decodeEntities(out2).trim();
+    } catch (e) {}
+    try {
+      var j3 = await fetchJSON('https://lingva.ml/api/v1/' + from + '/' + to + '/' + encodeURIComponent(text.replace(/\//g, ' ').slice(0, 900)), 3500);
+      if (j3 && typeof j3.translation === 'string' && !untranslated(j3.translation, text)) return j3.translation.trim();
+    } catch (e) {}
+    return '';
+  }
   async function translate(text, from, to) {
     text = String(text || '').trim();
     if (!text || from === to) return text;
-    if (Date.now() >= googleCool) {
-      try {
-        var j = await fetchJSON('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=' + from + '&tl=' + to + '&q=' + encodeURIComponent(text));
-        var out = ((j && j[0]) || []).map(function (s) { return (s && s[0]) || ''; }).join('').trim();
-        if (out) return out;
-      } catch (e) { if (/ 429$/.test(e.message)) googleCool = Date.now() + 60000; }
-    }
-    try {
-      var j2 = await fetchJSON('https://api.mymemory.translated.net/get?langpair=' + from + '%7C' + to + '&q=' + encodeURIComponent(text.slice(0, 480)));
-      var out2 = j2 && j2.responseData && j2.responseData.translatedText;
-      if (Number(j2 && j2.responseStatus) === 200 && out2) return decodeEntities(out2).trim();
-    } catch (e) {}
-    try {
-      var j3 = await fetchJSON('https://lingva.ml/api/v1/' + from + '/' + to + '/' + encodeURIComponent(text.replace(/\//g, ' ').slice(0, 900)));
-      if (j3 && typeof j3.translation === 'string' && j3.translation.trim()) return j3.translation.trim();
-    } catch (e) {}
-    throw new Error('translate-failed');
+    var ck = from + '>' + to + ':' + text;
+    if (tcache.has(ck)) return tcache.get(ck);
+    var out = await tryServices(text, from, to);
+    if (!out) { tstat.fails++; throw new Error('translate-failed'); }
+    tstat.ok = Date.now(); tstat.fails = 0;
+    tcache.set(ck, out); if (tcache.size > 300) tcache.delete(tcache.keys().next().value);
+    return out;
   }
 
   window.Core = {
     CONFIG: CONFIG, MQ: MQ, MiniMQTT: MiniMQTT, NtfyLink: NtfyLink, Link: Link,
     rid: rid, newCode: newCode, normCode: normCode, validCode: validCode, fmtCode: fmtCode, parseCodeInput: parseCodeInput,
-    deriveRoom: deriveRoom, encrypt: encrypt, decrypt: decrypt, translate: translate, pack: pack, unpack: unpack, iceServers: iceServers
+    deriveRoom: deriveRoom, encrypt: encrypt, decrypt: decrypt, translate: translate, tstat: tstat, pack: pack, unpack: unpack, iceServers: iceServers
   };
 })();
 </script>
 
 <script id="voice">
-/* ===== Voz: timbre y transcripción en directo del audio de la llamada (Deepgram) ===== */
+/* ===== Voz: timbre y transcripción en directo (Deepgram) ===== */
 (function () {
   'use strict';
   var Core = window.Core;
+  var MODELS = ['nova-3', 'nova-2'];
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
-  /* Procesador de audio: pasa el sonido a 16 kHz y lo entrega en trozos de 100 ms con su volumen */
+  /* El móvil graba tu voz ya comprimida (como una nota de voz) y la manda a transcribir: no toca el sonido de la llamada
+     y gasta unas 8 veces menos internet que el audio sin comprimir */
+  function recFormat() {
+    if (typeof MediaRecorder === 'undefined' || lsGet('hk.dgfmt') === 'pcm') return null;
+    var list = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+    for (var i = 0; i < list.length; i++) { try { if (MediaRecorder.isTypeSupported(list[i])) return list[i]; } catch (e) {} }
+    return null;
+  }
+
+  /* Plan B, solo para móviles sin grabadora: pasa el sonido a 16 kHz y lo entrega en trozos de 100 ms */
   var WORKLET = [
     'class Pcm16Down extends AudioWorkletProcessor {',
-    '  constructor() { super(); this.r = sampleRate / 16000; this.p = 0; this.s = 0; this.c = 0; this.b = new Int16Array(1600); this.n = 0; this.e = 0; }',
+    '  constructor() { super(); this.r = sampleRate / 16000; this.p = 0; this.s = 0; this.c = 0; this.b = new Int16Array(1600); this.n = 0; }',
     '  process(inputs) {',
     '    var x = inputs[0] && inputs[0][0];',
     '    if (!x) return true;',
@@ -690,13 +730,8 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     '        this.p -= this.r;',
     '        var v = this.s / this.c; this.s = 0; this.c = 0;',
     '        v = v < -1 ? -1 : v > 1 ? 1 : v;',
-    '        this.e += v * v;',
     '        this.b[this.n++] = v < 0 ? v * 32768 : v * 32767;',
-    '        if (this.n === 1600) {',
-    '          var out = this.b;',
-    '          this.port.postMessage({ pcm: out.buffer, rms: Math.sqrt(this.e / 1600) }, [out.buffer]);',
-    '          this.b = new Int16Array(1600); this.n = 0; this.e = 0;',
-    '        }',
+    '        if (this.n === 1600) { var out = this.b; this.port.postMessage(out.buffer, [out.buffer]); this.b = new Int16Array(1600); this.n = 0; }',
     '      }',
     '    }',
     '    return true;',
@@ -704,104 +739,149 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     '}',
     "registerProcessor('pcm16-down', Pcm16Down);"
   ].join('\n');
-  var MODELS = ['nova-3', 'nova-2'];
-  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
   /* --- Transcripción en directo con Deepgram --- */
   function DG(o) {
     this.o = o; this.sid = Core.rid(8); this.v = 0; this.finals = []; this.interim = ''; this.lastEmit = '';
     var saved = String(lsGet('hk.dgm.' + o.lang) || '').split('|');
     this.mi = saved[0] === 'nova-2' && Date.now() - Number(saved[1] || 0) < 7 * 86400000 ? 1 : 0; this.tries = 0; this.fails = 0;
-    this.paused = false; this.pre = []; this.sending = false; this.lastSpeech = 0; this.lastSent = 0; this.rms = [];
-    this.st = ''; this.stopped = true;
+    this.paused = false; this.lastSent = 0; this.st = ''; this.stopped = true; this.rec = null; this.ctx = null; this.fmt = null; this.gotResult = false; this.mp4Bad = 0;
   }
-  DG.prototype.start = async function () {
+  DG.prototype.start = function () {
     var self = this;
-    this.stopped = false;
-    try { await this.audio(); } catch (e) { this.state('error'); return; }
-    if (this.stopped) { this.teardown(); return; }
+    this.stopped = false; this.fmt = recFormat();
     this.connect();
     this.ka = setInterval(function () {
       if (self.ws && self.ws.readyState === 1 && Date.now() - self.lastSent > 4000) self.sendJSON({ type: 'KeepAlive' });
     }, 2000);
   };
-  DG.prototype.audio = async function () {
-    var self = this, ctx = this.o.ctx, node = null;
+  DG.prototype.connect = function () {
+    var self = this;
+    if (this.stopped) return;
+    var model = MODELS[this.mi];
+    var q = 'model=' + model + '&language=' + this.o.lang + '&interim_results=true&smart_format=true&endpointing=300&utterance_end_ms=1000';
+    if (!this.fmt) q += '&encoding=linear16&sample_rate=16000&channels=1';
+    var ws, openedAt = 0;
+    try { ws = new WebSocket(Core.CONFIG.dgUrl + '?' + q, ['token', this.o.key]); } catch (e) { this.retry(false); return; }
+    ws.binaryType = 'arraybuffer'; this.ws = ws;
+    ws.onopen = function () {
+      if (self.ws !== ws) return;
+      openedAt = Date.now(); self.fails = 0; self.tries = 0; self.gotResult = false;
+      lsSet('hk.dgm.' + self.o.lang, model + '|' + Date.now());
+      self.audioOn(ws); self.state('on');
+    };
+    ws.onmessage = function (e) { if (typeof e.data === 'string') self.msg(e.data); };
+    ws.onerror = function () {};
+    ws.onclose = function () {
+      if (self.ws !== ws) return;
+      self.ws = null; self.audioOff();
+      if (self.stopped) return;
+      if (self.again) { self.again = false; self.connect(); return; }
+      /* si con este formato la conexión se corta dos veces sin dar nunca texto, se pasa al plan B y se recuerda */
+      if (openedAt && self.fmt && self.fmt.indexOf('mp4') >= 0 && !self.gotResult && !self.paused && ++self.mp4Bad >= 2) {
+        lsSet('hk.dgfmt', 'pcm'); self.fmt = null; self.connect(); return;
+      }
+      self.retry(openedAt > 0 && Date.now() - openedAt > 5000, openedAt > 0);
+    };
+  };
+  /* Reconectar: si Deepgram ni siquiera acepta la conexión se prueba el otro modelo (no todos los idiomas están en nova-3);
+     si se cortó estando abierta, se reintenta con el mismo */
+  DG.prototype.retry = function (wasGood, opened) {
+    var self = this;
+    clearTimeout(this.rt);
+    if (wasGood) { this.rt = setTimeout(function () { self.connect(); }, 500); return; }
+    if (!opened) {
+      this.tries++;
+      if (this.tries < MODELS.length) { this.mi = (this.mi + 1) % MODELS.length; this.connect(); return; }
+      this.tries = 0;
+    }
+    this.fails++;
+    if (this.fails >= 2) this.state('error');
+    this.rt = setTimeout(function () { self.connect(); }, Math.min(30000, 2500 * this.fails));
+  };
+  /* Empieza a mandar audio por la conexión recién abierta: con la grabadora (normal) o, si no hay, con el plan B */
+  DG.prototype.audioOn = function (ws) {
+    var self = this;
+    if (this.fmt) {
+      var rec = null;
+      try { rec = new MediaRecorder(this.o.stream, { mimeType: this.fmt, audioBitsPerSecond: 32000 }); }
+      catch (e) { try { rec = new MediaRecorder(this.o.stream, { mimeType: this.fmt }); } catch (e2) { rec = null; } }
+      if (rec) {
+        rec.ondataavailable = function (e) {
+          if (self.rec !== rec || !e.data || !e.data.size || ws.readyState !== 1) return;
+          try { ws.send(e.data); self.lastSent = Date.now(); } catch (x) {}
+        };
+        try { rec.start(250); } catch (e) { rec = null; }
+      }
+      if (rec) {
+        this.rec = rec;
+        if (this.paused) { try { rec.pause(); } catch (e) {} }
+        /* si Deepgram no entiende este formato (algún iPhone antiguo), se pasa al plan B y se recuerda */
+        clearTimeout(this.wd);
+        if (this.fmt.indexOf('mp4') >= 0) this.wd = setTimeout(function () {
+          if (self.ws === ws && !self.gotResult && !self.stopped && !self.paused) { lsSet('hk.dgfmt', 'pcm'); self.fmt = null; self.again = true; try { ws.close(); } catch (e) {} }
+        }, 15000);
+        return;
+      }
+      lsSet('hk.dgfmt', 'pcm'); this.fmt = null; this.again = true; try { ws.close(); } catch (e) {}
+      return;
+    }
+    this.pcmOn().catch(function () { self.state('error'); });
+  };
+  DG.prototype.pcmOn = async function () {
+    var self = this, C = window.AudioContext || window.webkitAudioContext;
+    if (!C) throw new Error('noaudio');
+    var ctx = new C(); this.ctx = ctx;
     if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
-    this.src = ctx.createMediaStreamSource(this.o.stream);
-    this.sink = ctx.createGain(); this.sink.gain.value = 0; this.sink.connect(ctx.destination);
+    var src = ctx.createMediaStreamSource(this.o.stream), sink = ctx.createGain(), node = null;
+    sink.gain.value = 0; sink.connect(ctx.destination);
     if (ctx.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
       try {
-        if (!ctx.__pcm16) ctx.__pcm16 = ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' })));
-        await ctx.__pcm16;
+        await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' })));
         node = new AudioWorkletNode(ctx, 'pcm16-down', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
-        node.port.onmessage = function (e) { self.frame(e.data.pcm, e.data.rms); };
+        node.port.onmessage = function (e) { self.frame(e.data); };
       } catch (e) { node = null; }
     }
     if (!node) node = this.scriptNode(ctx);
-    this.node = node;
-    this.src.connect(node); node.connect(this.sink);
+    if (this.ctx !== ctx) { try { ctx.close(); } catch (e) {} return; }
+    this.src = src; this.node = node; this.sink = sink;
+    src.connect(node); node.connect(sink);
   };
   DG.prototype.scriptNode = function (ctx) {
-    var self = this, sp = ctx.createScriptProcessor(4096, 1, 1), r = ctx.sampleRate / 16000, p = 0, s = 0, c = 0, b = new Int16Array(1600), n = 0, en = 0;
+    var self = this, sp = ctx.createScriptProcessor(4096, 1, 1), r = ctx.sampleRate / 16000, p = 0, s = 0, c = 0, b = new Int16Array(1600), n = 0;
     sp.onaudioprocess = function (ev) {
       var x = ev.inputBuffer.getChannelData(0);
       for (var k = 0; k < x.length; k++) {
         s += x[k]; c++; p += 1;
         if (p >= r) {
-          p -= r; var v = s / c; s = 0; c = 0; v = v < -1 ? -1 : v > 1 ? 1 : v; en += v * v;
+          p -= r; var v = s / c; s = 0; c = 0; v = v < -1 ? -1 : v > 1 ? 1 : v;
           b[n++] = v < 0 ? v * 32768 : v * 32767;
-          if (n === 1600) { var out = b; self.frame(out.buffer, Math.sqrt(en / 1600)); b = new Int16Array(1600); n = 0; en = 0; }
+          if (n === 1600) { var out = b; self.frame(out.buffer); b = new Int16Array(1600); n = 0; }
         }
       }
     };
     return sp;
   };
-  /* Solo se envía audio mientras alguien habla (y 1,3 s más): ahorra crédito y cada frase se cierra sola */
-  DG.prototype.frame = function (pcm, rms) {
-    if (this.stopped) return;
-    var now = Date.now();
-    if (this.paused) rms = 0;
-    this.rms.push(rms); if (this.rms.length > 50) this.rms.shift();
-    var floor = Math.min.apply(null, this.rms);
-    if (rms > Math.max(0.008, floor * 2.5)) this.lastSpeech = now;
-    if (!this.paused && now - this.lastSpeech < 1300) {
-      if (!this.sending) { this.sending = true; while (this.pre.length) this.send(this.pre.shift()); }
-      this.send(pcm);
-    } else {
-      if (this.sending) { this.sending = false; this.sendJSON({ type: 'Finalize' }); }
-      this.pre.push(pcm); if (this.pre.length > 3) this.pre.shift();
-    }
+  DG.prototype.frame = function (pcm) { if (!this.stopped && !this.paused) this.send(pcm); };
+  DG.prototype.audioOff = function () {
+    clearTimeout(this.wd);
+    var rec = this.rec; this.rec = null;
+    if (rec) { rec.ondataavailable = null; try { if (rec.state !== 'inactive') rec.stop(); } catch (e) {} }
+    try { if (this.node && this.node.port) this.node.port.onmessage = null; } catch (e) {}
+    try { if (this.node) this.node.onaudioprocess = null; } catch (e) {}
+    try { if (this.src) this.src.disconnect(); } catch (e) {}
+    try { if (this.node) this.node.disconnect(); } catch (e) {}
+    try { if (this.sink) this.sink.disconnect(); } catch (e) {}
+    this.src = this.node = this.sink = null;
+    var ctx = this.ctx; this.ctx = null;
+    if (ctx) { try { ctx.close(); } catch (e) {} }
   };
   DG.prototype.send = function (buf) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(buf); this.lastSent = Date.now(); } catch (e) {} } };
   DG.prototype.sendJSON = function (o) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(o)); this.lastSent = Date.now(); } catch (e) {} } };
-  DG.prototype.connect = function () {
-    var self = this;
-    if (this.stopped) return;
-    var model = MODELS[this.mi];
-    var q = 'model=' + model + '&language=' + this.o.lang + '&encoding=linear16&sample_rate=16000&channels=1&interim_results=true&smart_format=true&endpointing=300&utterance_end_ms=1000';
-    var ws, openedAt = 0;
-    try { ws = new WebSocket(Core.CONFIG.dgUrl + '?' + q, ['token', this.o.key]); } catch (e) { this.retry(false); return; }
-    ws.binaryType = 'arraybuffer'; this.ws = ws;
-    ws.onopen = function () { openedAt = Date.now(); self.fails = 0; self.tries = 0; lsSet('hk.dgm.' + self.o.lang, model + '|' + Date.now()); self.state('on'); };
-    ws.onmessage = function (e) { if (typeof e.data === 'string') self.msg(e.data); };
-    ws.onerror = function () {};
-    ws.onclose = function () { if (self.ws === ws) self.ws = null; if (!self.stopped) self.retry(openedAt > 0 && Date.now() - openedAt > 5000); };
-  };
-  DG.prototype.retry = function (wasGood) {
-    var self = this;
-    clearTimeout(this.rt);
-    if (wasGood) { this.rt = setTimeout(function () { self.connect(); }, 500); return; }
-    this.tries++;
-    if (this.tries < MODELS.length) { this.mi = (this.mi + 1) % MODELS.length; this.connect(); return; }
-    this.tries = 0; this.fails++;
-    if (this.fails >= 2) this.state('error');
-    this.rt = setTimeout(function () { self.connect(); }, Math.min(30000, 2500 * this.fails));
-  };
   DG.prototype.msg = function (s) {
     var m; try { m = JSON.parse(s); } catch (e) { return; }
     if (m.type === 'Results') {
+      this.gotResult = true; this.mp4Bad = 0;
       var alt = m.channel && m.channel.alternatives && m.channel.alternatives[0];
       var txt = alt && alt.transcript ? String(alt.transcript).trim() : '';
       if (m.is_final) { if (txt) this.finals.push(txt); this.interim = ''; } else this.interim = txt;
@@ -818,19 +898,18 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   };
   DG.prototype.emit = function (text, fin) { this.v++; try { this.o.onUpdate({ sid: this.sid, text: text, fin: fin, v: this.v }); } catch (e) { if (window.console) console.error(e); } };
   DG.prototype.state = function (s) { if (this.st !== s) { this.st = s; try { if (this.o.onState) this.o.onState(s, this); } catch (e) {} } };
-  DG.prototype.setPaused = function (p) { this.paused = !!p; };
-  DG.prototype.teardown = function () {
-    try { if (this.node && this.node.port) this.node.port.onmessage = null; } catch (e) {}
-    try { if (this.node) this.node.onaudioprocess = null; } catch (e) {}
-    try { if (this.src) this.src.disconnect(); } catch (e) {}
-    try { if (this.node) this.node.disconnect(); } catch (e) {}
-    try { if (this.sink) this.sink.disconnect(); } catch (e) {}
+  /* Silenciar: la grabadora se pausa (no se manda nada ni se gasta crédito) y la frase a medias se cierra */
+  DG.prototype.setPaused = function (p) {
+    p = !!p; if (this.paused === p) return;
+    this.paused = p;
+    if (this.rec) { try { if (p) this.rec.pause(); else this.rec.resume(); } catch (e) {} }
+    if (p) this.sendJSON({ type: 'Finalize' });
   };
   DG.prototype.stop = function () {
     this.stopped = true; clearInterval(this.ka); clearTimeout(this.rt);
+    this.audioOff();
     var ws = this.ws; this.ws = null;
     if (ws) { try { if (ws.readyState === 1) ws.send('{"type":"CloseStream"}'); } catch (e) {} try { ws.close(); } catch (e) {} }
-    this.teardown();
   };
   /* Comprueba una clave: si Deepgram acepta la conexión, la clave sirve */
   DG.test = function (key, lang) {
@@ -845,37 +924,59 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     });
   };
 
-  /* --- Timbre y tono de llamada, generados aquí (sin archivos de sonido) --- */
+  /* --- Timbre y tono de llamada: sonidos generados aquí y reproducidos como un audio normal (sin tocar el sonido de la llamada) --- */
+  function wav(parts) {
+    var sr = 16000, n = 0, i, k;
+    for (i = 0; i < parts.length; i++) n += Math.round(parts[i][1] * sr);
+    var buf = new ArrayBuffer(44 + n * 2), d = new DataView(buf), o = 0;
+    var str = function (s) { for (var j = 0; j < s.length; j++) d.setUint8(o++, s.charCodeAt(j)); };
+    var u32 = function (v) { d.setUint32(o, v, true); o += 4; }, u16 = function (v) { d.setUint16(o, v, true); o += 2; };
+    str('RIFF'); u32(36 + n * 2); str('WAVE'); str('fmt '); u32(16); u16(1); u16(1); u32(sr); u32(sr * 2); u16(2); u16(16); str('data'); u32(n * 2);
+    for (i = 0; i < parts.length; i++) {
+      var f = parts[i][0], len = Math.round(parts[i][1] * sr), g = parts[i][2] || 0, fade = 0.015 * sr;
+      for (k = 0; k < len; k++) {
+        var env = Math.min(1, k / fade, (len - k) / fade);
+        d.setInt16(o, Math.round((f ? Math.sin(2 * Math.PI * f * k / sr) * g * env : 0) * 32767), true); o += 2;
+      }
+    }
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  }
   var Tone = {
-    ctx: null, iv: null,
-    ensure: function () {
-      if (!this.ctx) { var C = window.AudioContext || window.webkitAudioContext; if (C) { try { this.ctx = new C(); } catch (e) {} } }
-      if (this.ctx && this.ctx.state === 'suspended') { try { this.ctx.resume(); } catch (e) {} }
-      return this.ctx;
-    },
-    beep: function (f, d, at, vol) {
-      var c = this.ctx; if (!c) return;
-      try {
-        var t = c.currentTime + (at || 0), v = vol || 0.18;
-        var o = c.createOscillator(), g = c.createGain();
-        o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.02);
-        g.gain.setValueAtTime(v, t + d - 0.05); g.gain.linearRampToValueAtTime(0, t + d);
-        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.05);
-      } catch (e) {}
-    },
-    ring: function () {
-      var self = this; this.stop(); this.ensure();
-      var play = function () {
-        self.beep(784, 0.16, 0); self.beep(988, 0.22, 0.2); self.beep(784, 0.16, 0.7); self.beep(988, 0.22, 0.9);
-        try { if (navigator.vibrate) navigator.vibrate([350, 150, 350]); } catch (e) {}
+    els: null, iv: null,
+    make: function () {
+      if (this.els) return this.els;
+      var mk = function (parts) { var a = new Audio(); a.src = wav(parts); a.loop = true; a.preload = 'auto'; return a; };
+      this.els = {
+        ring: mk([[0, 0.3], [784, 0.16, 0.45], [0, 0.04], [988, 0.22, 0.45], [0, 0.28], [784, 0.16, 0.45], [0, 0.04], [988, 0.22, 0.45], [0, 1.38]]),
+        back: mk([[0, 0.3], [425, 1.0, 0.22], [0, 2.7]])
       };
-      play(); this.iv = setInterval(play, 2800);
+      return this.els;
     },
-    ringback: function () { var self = this; this.stop(); this.ensure(); var play = function () { self.beep(425, 1.0, 0, 0.1); }; play(); this.iv = setInterval(play, 4000); },
-    stop: function () { clearInterval(this.iv); this.iv = null; try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {} }
+    /* con un toque se desbloquea el sonido (el iPhone lo necesita para que luego pueda sonar el timbre solo) */
+    unlock: function () {
+      var e = this.make();
+      [e.ring, e.back].forEach(function (a) {
+        if (a.__ok) return;
+        var p; try { p = a.play(); } catch (x) { p = null; }
+        var off = function () { try { a.pause(); a.currentTime = 0; } catch (x) {} };
+        if (p && p.then) p.then(function () { a.__ok = true; if (a !== Tone.playing) off(); }).catch(function () {}); else off();
+      });
+    },
+    play: function (a) { this.playing = a; try { a.currentTime = 0; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} },
+    ring: function () {
+      var e = this.make(); this.stop(); this.play(e.ring);
+      var vib = function () { try { if (navigator.vibrate) navigator.vibrate([350, 150, 350]); } catch (x) {} };
+      vib(); this.iv = setInterval(vib, 2800);
+    },
+    ringback: function () { var e = this.make(); this.stop(); this.play(e.back); },
+    stop: function () {
+      clearInterval(this.iv); this.iv = null; this.playing = null;
+      if (this.els) [this.els.ring, this.els.back].forEach(function (a) { try { a.pause(); a.currentTime = 0; } catch (x) {} });
+      try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {}
+    }
   };
 
-  window.Voice = { DG: DG, Tone: Tone };
+  window.Voice = { DG: DG, Tone: Tone, recFormat: recFormat };
 })();
 </script>
 
@@ -888,7 +989,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   var UA = navigator.userAgent || '';
   var isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isStandalone = function () { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; };
-  var canListen = !!(window.AudioContext || window.webkitAudioContext);
+  var canListen = typeof MediaRecorder !== 'undefined' || !!(window.AudioContext || window.webkitAudioContext);
   var stopTrack = function (tr) { try { tr.stop(); } catch (e) {} };
 
   /* Icono de la app dibujado aquí mismo (sin imágenes aparte) */
@@ -962,6 +1063,12 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       cancelled: 'Llamada cancelada',
       micDenied: 'Sin permiso para el micrófono',
       tapToHear: 'Toca la pantalla para oír la llamada',
+      stVoice: 'Voz a texto',
+      stTr: 'Traductor',
+      trFail: 'El traductor no responde ahora mismo; reintentando…',
+      notTranslated: 'Sin traducir: el traductor no respondió',
+      partTranslated: 'Traducción incompleta: el traductor no respondió',
+      version: 'versión 3',
       accept: 'Aceptar',
       decline: 'Rechazar',
       cancel: 'Cancelar',
@@ -1066,6 +1173,12 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       cancelled: 'Arama iptal edildi',
       micDenied: 'Mikrofon izni yok',
       tapToHear: 'Sesi duymak için ekrana dokun',
+      stVoice: 'Sesten yazıya',
+      stTr: 'Çevirmen',
+      trFail: 'Çevirmen şu an yanıt vermiyor; tekrar deneniyor…',
+      notTranslated: 'Çevrilemedi: çevirmen yanıt vermedi',
+      partTranslated: 'Çeviri eksik: çevirmen yanıt vermedi',
+      version: 'sürüm 3',
       accept: 'Kabul et',
       decline: 'Reddet',
       cancel: 'İptal',
@@ -1239,7 +1352,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     ui();
   }
   async function arm() {
-    Tone.ensure();
+    Tone.unlock();
     S.armed = true; $('armar').hidden = true; S.micError = null;
     ui();
     try { var st = await getMic(); st.getTracks().forEach(stopTrack); }
@@ -1376,7 +1489,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
 
   async function startCall() {
     if (inCall() || !S.link || !S.link.key) return;
-    Tone.ensure(); S.armed = true; $('armar').hidden = true;
+    Tone.unlock(); S.armed = true; $('armar').hidden = true;
     var cid = Core.rid(10);
     prepCall(cid, true, null);
     setCallState('outgoing');
@@ -1433,7 +1546,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
 
   async function acceptCall() {
     if (Call.state !== 'incoming') return;
-    Tone.ensure(); Tone.stop(); clearTimeout(Call.timeout);
+    Tone.unlock(); Tone.stop(); clearTimeout(Call.timeout);
     S.armed = true; $('armar').hidden = true;
     var cid = Call.id;
     setCallState('connecting');
@@ -1630,28 +1743,36 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   }
 
   /* ---------- Subtítulos ---------- */
-  var Subs = { list: [], mine: null };
-  function resetSubs() { Subs.list = []; Subs.mine = null; renderSubs(); }
+  var Subs = { list: [], mine: null, fixTimer: null };
+  function resetSubs() { Subs.list = []; Subs.mine = null; clearTimeout(Subs.fixTimer); Subs.fixTimer = null; renderSubs(); }
 
-  /* Traduce lo que se va reconociendo sin saturar el traductor: lo provisional como mucho cada 2 s, lo definitivo enseguida */
+  /* Traduce lo que se va reconociendo sin saturar el traductor: lo provisional cada 2 s y solo si hay palabras nuevas;
+     la frase terminada enseguida y, si falla, se reintenta una vez */
   function translator(from, to, done) {
     var st = {};
+    var words = function (s) { return String(s).split(/\s+/).filter(Boolean).length; };
     function run(sid) {
       var s = st[sid]; if (!s || !s.latest || s.busy) return;
-      var seg = s.latest; s.latest = null; s.last = Date.now(); s.busy = true;
+      var seg = s.latest; s.latest = null; s.last = Date.now(); s.busy = true; s.words = words(seg.text);
       Core.translate(seg.text, from, to).catch(function () { return null; }).then(function (tr) {
         s.busy = false;
+        if (!tr && seg.fin && !s.retried) {
+          s.retried = true; if (!s.latest) s.latest = seg;
+          clearTimeout(s.timer); s.timer = setTimeout(function () { run(sid); }, 1500); return;
+        }
         done(seg, tr);
         if (s.latest) plan(sid); else if (seg.fin) delete st[sid];
       });
     }
     function plan(sid) {
       var s = st[sid]; clearTimeout(s.timer);
-      var wait = s.latest.fin ? 0 : Math.max(0, 2000 - (Date.now() - s.last));
+      var seg = s.latest; if (!seg) return;
+      if (!seg.fin) { var n = words(seg.text); if (n < 2 || n < s.words + 2) return; }
+      var wait = seg.fin ? 0 : Math.max(0, 2000 - (Date.now() - s.last));
       s.timer = setTimeout(function () { run(sid); }, wait);
     }
     return function (seg) {
-      var s = st[seg.sid] || (st[seg.sid] = { last: 0, timer: null, latest: null, busy: false });
+      var s = st[seg.sid] || (st[seg.sid] = { last: 0, timer: null, latest: null, busy: false, words: 0, retried: false });
       s.latest = seg; plan(seg.sid);
     };
   }
@@ -1668,15 +1789,15 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
 
   function planSTT() {
     if (Call.state !== 'active' || !Call.local) return;
-    var key = myKey(), ctx = key && canListen ? Tone.ensure() : null;
-    if (!Call.stt.local && ctx) {
-      Call.stt.local = new Voice.DG({ key: key, lang: S.lang, stream: Call.local, ctx: ctx, onUpdate: makeRelay(S.lang, partnerLang(), S.cid), onState: sttState });
-      Call.stt.local.start();
+    var key = myKey(), can = !!key && canListen;
+    if (!Call.stt.local && can) {
+      Call.stt.local = new Voice.DG({ key: key, lang: S.lang, stream: Call.local, onUpdate: makeRelay(S.lang, partnerLang(), S.cid), onState: sttState });
       if (Call.muted) Call.stt.local.setPaused(true);
+      Call.stt.local.start();
     }
     var partnerCant = !!(Call.partnerCaps && !Call.partnerCaps.stt);
-    if (partnerCant && ctx && Call.remote && !Call.stt.remote) {
-      Call.stt.remote = new Voice.DG({ key: key, lang: partnerLang(), stream: Call.remote, ctx: ctx, onUpdate: makeRelay(partnerLang(), S.lang, Call.peer || 'p'), onState: sttState });
+    if (partnerCant && can && Call.remote && !Call.stt.remote) {
+      Call.stt.remote = new Voice.DG({ key: key, lang: partnerLang(), stream: Call.remote, onUpdate: makeRelay(partnerLang(), S.lang, Call.peer || 'p'), onState: sttState });
       Call.stt.remote.start();
     } else if (!partnerCant && Call.stt.remote && Call.partnerCaps) {
       Call.stt.remote.stop(); Call.stt.remote = null;
@@ -1707,30 +1828,48 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       var mi = Subs.mine;
       if (!mi || mi.sid !== m.sid) {
         if (mi && v < mi.oV) return;
-        mi = Subs.mine = { sid: m.sid, o: '', tr: '', oV: -1, trV: -1 };
+        mi = Subs.mine = { sid: m.sid, o: '', tr: '', trFor: '', oV: -1, trV: -1, lost: false };
       }
       if (v >= mi.oV) { mi.o = m.o; mi.oV = v; }
-      if (m.tr && v >= mi.trV) { mi.tr = m.tr; mi.trV = v; }
+      if (m.tr && v >= mi.trV) { mi.tr = m.tr; mi.trFor = m.o; mi.trV = v; }
+      mi.lost = !!(m.fin && !m.tr && mi.trFor !== mi.o);
       renderMine(); return;
     }
     var it = null;
     for (var i = 0; i < Subs.list.length; i++) if (Subs.list[i].sid === m.sid) it = Subs.list[i];
     if (!it) {
-      it = { sid: m.sid, o: '', tr: '', oV: -1, trV: -1, fin: false, fixing: false };
+      it = { sid: m.sid, lang: from, o: '', tr: '', trFor: '', oV: -1, trV: -1, fin: false, failed: false, fixing: false, tries: 0 };
       Subs.list.push(it); if (Subs.list.length > 4) Subs.list.shift();
     }
     if (v >= it.oV) { it.o = m.o; it.oV = v; }
-    if (from === S.lang) { if (v >= it.trV) { it.tr = m.o; it.trV = v; } }
-    else if (m.tr && v >= it.trV) { it.tr = m.tr; it.trV = v; }
-    if (m.fin) {
-      it.fin = true;
-      if (!m.tr && from !== S.lang && !it.fixing) {
-        it.fixing = true;
-        var src = m.o;
-        Core.translate(src, from, S.lang).then(function (tr) { if (tr && it.o === src) { it.tr = tr; renderSubs(); } }).catch(function () {});
-      }
-    }
+    if (from === S.lang) { if (v >= it.trV) { it.tr = m.o; it.trFor = m.o; it.trV = v; } }
+    else if (m.tr && v >= it.trV) { it.tr = m.tr; it.trFor = m.o; it.trV = v; }
+    if (it.trFor === it.o) it.failed = false;
+    if (m.fin) { it.fin = true; if (it.trFor !== it.o) fixSub(it); }
     renderSubs();
+  }
+  /* Si la frase terminada llega sin traducir (o traducida solo a medias), este móvil la traduce él mismo;
+     si tampoco puede, se avisa en la propia línea y se vuelve a intentar sola cada 5 s mientras siga en pantalla */
+  function fixSub(it) {
+    if (it.fixing) return;
+    var src = it.o; it.fixing = true; it.tries++;
+    Core.translate(src, it.lang, S.lang).then(function (tr) {
+      it.fixing = false;
+      if (it.o !== src) return;
+      it.tr = tr; it.trFor = src; it.failed = false; renderSubs();
+    }, function () {
+      it.fixing = false;
+      if (it.o !== src || it.trFor === src) return;
+      it.failed = true; renderCall(); planFix();
+    });
+  }
+  function planFix() {
+    if (Subs.fixTimer) return;
+    Subs.fixTimer = setTimeout(function () {
+      Subs.fixTimer = null;
+      if (Call.state !== 'active') return;
+      Subs.list.forEach(function (it) { if (it.failed && it.fin && it.tries < 8) fixSub(it); });
+    }, 5000);
   }
   function renderSubs() {
     var box = $('subsBox');
@@ -1745,20 +1884,25 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       Subs.list.forEach(function (it, i) {
         var d = document.createElement('div');
         d.className = 'sub' + (i === Subs.list.length - 1 ? ' now' : '') + (it.fin ? '' : ' live');
-        var a = document.createElement('p'); a.className = 'tr'; a.textContent = it.tr || '…';
+        var bad = it.failed && it.trFor !== it.o, part = bad && !!it.tr;
+        var a = document.createElement('p'); a.className = 'tr' + (bad && !part ? ' untr' : '');
+        a.textContent = bad ? (part ? it.tr + ' …' : it.o) : (it.tr || '…');
         d.appendChild(a);
-        if (it.o && it.o !== it.tr) { var b = document.createElement('p'); b.className = 'o'; b.textContent = it.o; d.appendChild(b); }
+        var b = document.createElement('p'); b.className = 'o' + (bad ? ' warn' : '');
+        if (bad) { b.textContent = t(part ? 'partTranslated' : 'notTranslated'); d.appendChild(b); }
+        else if (it.o && it.o !== it.tr) { b.textContent = it.o; d.appendChild(b); }
         box.appendChild(d);
       });
     }
     renderMine();
+    renderStatus();
   }
   function renderMine() {
     var mi = Subs.mine, on = !!(S.settings.mine && mi && mi.o && Call.state === 'active');
     $('mine').hidden = !on;
     if (!on) return;
     $('mineO').textContent = mi.o;
-    $('mineTr').textContent = mi.tr && mi.tr !== mi.o ? t('theyGet') + ': ' + mi.tr : '';
+    $('mineTr').textContent = mi.tr && mi.tr !== mi.o && !mi.lost ? t('theyGet') + ': ' + mi.tr : '';
   }
 
   /* ---------- Pantalla de llamada ---------- */
@@ -1797,10 +1941,24 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     $('btnMute').disabled = !active;
     $('btnTam').classList.toggle('on', !!S.settings.big);
     $('muteLbl').textContent = Call.muted ? t('unmute') : t('mute');
-    if (active && Call.needTap) { $('callNoteTxt').textContent = t('tapToHear'); $('callNoteBtn').hidden = true; $('callNote').hidden = false; }
-    else if (active && Call.sttError) { $('callNoteTxt').textContent = t('subsError'); $('callNoteBtn').hidden = true; $('callNote').hidden = false; }
-    else if (st !== 'outgoing') hideNote();
+    if (!active && st !== 'outgoing') hideNote();
     renderSubs();
+  }
+  /* Las dos lucecitas de arriba: verde = funciona, amarillo = conectando, rojo = falla */
+  function voiceState() {
+    var d = Call.stt.local || Call.stt.remote;
+    if (d) return d.st === 'on' ? 'ok' : d.st === 'error' ? 'bad' : 'wait';
+    return Call.partnerCaps && Call.partnerCaps.stt ? 'ok' : 'off';
+  }
+  function renderStatus() {
+    var active = Call.state === 'active';
+    $('callStatus').hidden = !active;
+    if (!active) return;
+    $('stVoice').className = 'sdot ' + voiceState();
+    $('stTr').className = 'sdot ' + (Core.tstat.fails >= 2 ? 'bad' : Core.tstat.ok ? 'ok' : 'off');
+    var note = Call.needTap ? t('tapToHear') : Call.sttError ? t('subsError') : Core.tstat.fails >= 2 ? t('trFail') : '';
+    if (note) { $('callNoteTxt').textContent = note; $('callNoteBtn').hidden = true; $('callNote').hidden = false; }
+    else hideNote();
   }
   $('btnAceptar').addEventListener('click', acceptCall);
   $('btnRechazar').addEventListener('click', declineCall);
@@ -1917,7 +2075,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     var key = myKey();
     if (!key) { $('testO').textContent = t('testNeedKey'); return; }
     if (inCall()) return;
-    var ctx = Tone.ensure();
+    Tone.unlock();
     Test.starting = true; $('btnTest').textContent = t('testStop');
     var stream;
     try { stream = await getMic(); }
@@ -1930,7 +2088,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       if (Test.dg && tr && seg.v >= shownV) { shownV = seg.v; $('testTr').textContent = t('theyGet') + ': ' + tr; }
     });
     Test.dg = new Voice.DG({
-      key: key, lang: S.lang, stream: stream, ctx: ctx,
+      key: key, lang: S.lang, stream: stream,
       onUpdate: function (seg) { $('testO').textContent = seg.text; tl(seg); },
       onState: function (s) { if (s === 'error') $('testTr').textContent = t('subsError'); }
     });
@@ -2045,7 +2203,6 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       if (document.hidden) { if (!inCall()) sayBye(); }
       else {
         if (S.link) { S.link.wake(); sendHi(true, 'auto'); }
-        if (S.armed) Tone.ensure();
         if (inCall()) keepAwake();
       }
       ui();
