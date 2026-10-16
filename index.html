@@ -257,7 +257,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
 <!-- 3 · Inicio -->
 <section id="sInicio" class="screen" hidden>
   <header class="bar">
-    <div class="mini"><img class="logo" alt=""><span>Hablemos · Konuşalım</span><span class="ver">v3</span></div>
+    <div class="mini"><img class="logo" alt=""><span>Hablemos · Konuşalım</span><span class="ver">v4</span></div>
     <button type="button" id="btnInstalarL" class="chip" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg><span data-t="installShort"></span></button>
     <button type="button" id="btnAjustes" class="iconbtn" data-ta="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M19 6h1M4 12h2M12 12h8M4 18h7M17 18h3"/><circle cx="16" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="14" cy="18" r="2.5"/></svg></button>
   </header>
@@ -709,15 +709,35 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
   /* El móvil graba tu voz ya comprimida (como una nota de voz) y la manda a transcribir: no toca el sonido de la llamada
-     y gasta unas 8 veces menos internet que el audio sin comprimir */
+     y gasta unas 8 veces menos internet que el audio sin comprimir.
+     En iPhone no: lo que graba Safari, Deepgram solo lo entiende al principio (las primeras palabras y luego nada).
+     Ahí, si el otro móvil es Android, este transcribe la voz del iPhone desde la llamada; si no, el iPhone usa el plan B */
+  var UA = navigator.userAgent || '';
+  var webkit = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+    (/Safari\//.test(UA) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(UA));
+  function pcmForced() { var v = String(lsGet('hk.dgfmt') || '').split('|'); return v[0] === 'pcm' && Date.now() - Number(v[1] || 0) < 7 * 86400000; }
   function recFormat() {
-    if (typeof MediaRecorder === 'undefined' || lsGet('hk.dgfmt') === 'pcm') return null;
-    var list = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+    if (webkit || typeof MediaRecorder === 'undefined' || pcmForced()) return null;
+    var list = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
     for (var i = 0; i < list.length; i++) { try { if (MediaRecorder.isTypeSupported(list[i])) return list[i]; } catch (e) {} }
     return null;
   }
+  /* 'good' = transcribe bien con la grabadora · 'pcm' = necesita el plan B · 'none' = no puede */
+  function quality() { return recFormat() ? 'good' : (window.AudioContext || window.webkitAudioContext) ? 'pcm' : 'none'; }
 
-  /* Plan B, solo para móviles sin grabadora: pasa el sonido a 16 kHz y lo entrega en trozos de 100 ms */
+  /* En iPhone el motor de sonido a veces necesita un toque en la pantalla para arrancar */
+  var waiting = [];
+  function tapNeeded() { try { if (api.onNeedTap) api.onNeedTap(waiting.length > 0); } catch (e) {} }
+  function waitTap(ctx) { if (waiting.indexOf(ctx) < 0) { waiting.push(ctx); tapNeeded(); } }
+  function tapOk(ctx) { var i = waiting.indexOf(ctx); if (i >= 0) { waiting.splice(i, 1); tapNeeded(); } }
+  function resumeAll() {
+    waiting.slice().forEach(function (c) {
+      if (c.state === 'closed' || c.state === 'running') { tapOk(c); return; }
+      try { var p = c.resume(); if (p && p.then) p.then(function () { if (c.state === 'running') tapOk(c); }, function () {}); } catch (e) {}
+    });
+  }
+
+  /* Plan B (iPhone y móviles sin grabadora): pasa el sonido a 16 kHz y lo entrega en trozos de 100 ms */
   var WORKLET = [
     'class Pcm16Down extends AudioWorkletProcessor {',
     '  constructor() { super(); this.r = sampleRate / 16000; this.p = 0; this.s = 0; this.c = 0; this.b = new Int16Array(1600); this.n = 0; }',
@@ -745,7 +765,8 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     this.o = o; this.sid = Core.rid(8); this.v = 0; this.finals = []; this.interim = ''; this.lastEmit = '';
     var saved = String(lsGet('hk.dgm.' + o.lang) || '').split('|');
     this.mi = saved[0] === 'nova-2' && Date.now() - Number(saved[1] || 0) < 7 * 86400000 ? 1 : 0; this.tries = 0; this.fails = 0;
-    this.paused = false; this.lastSent = 0; this.st = ''; this.stopped = true; this.rec = null; this.ctx = null; this.fmt = null; this.gotResult = false; this.mp4Bad = 0;
+    this.paused = false; this.lastSent = 0; this.st = ''; this.stopped = true; this.rec = null; this.ctx = null; this.fmt = null;
+    this.lastMsg = 0; this.voiceSince = 0; this.stalls = 0;
   }
   DG.prototype.start = function () {
     var self = this;
@@ -766,23 +787,44 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     ws.binaryType = 'arraybuffer'; this.ws = ws;
     ws.onopen = function () {
       if (self.ws !== ws) return;
-      openedAt = Date.now(); self.fails = 0; self.tries = 0; self.gotResult = false;
+      openedAt = Date.now(); self.fails = 0; self.tries = 0; self.lastMsg = openedAt; self.voiceSince = 0;
       lsSet('hk.dgm.' + self.o.lang, model + '|' + Date.now());
       self.audioOn(ws); self.state('on');
     };
-    ws.onmessage = function (e) { if (typeof e.data === 'string') self.msg(e.data); };
+    ws.onmessage = function (e) {
+      if (self.ws !== ws) return;
+      self.lastMsg = Date.now(); self.voiceSince = 0;
+      if (typeof e.data === 'string') self.msg(e.data);
+    };
     ws.onerror = function () {};
     ws.onclose = function () {
       if (self.ws !== ws) return;
       self.ws = null; self.audioOff();
       if (self.stopped) return;
-      if (self.again) { self.again = false; self.connect(); return; }
-      /* si con este formato la conexión se corta dos veces sin dar nunca texto, se pasa al plan B y se recuerda */
-      if (openedAt && self.fmt && self.fmt.indexOf('mp4') >= 0 && !self.gotResult && !self.paused && ++self.mp4Bad >= 2) {
-        lsSet('hk.dgfmt', 'pcm'); self.fmt = null; self.connect(); return;
-      }
+      self.close();
       self.retry(openedAt > 0 && Date.now() - openedAt > 5000, openedAt > 0);
     };
+  };
+  /* Abre una conexión nueva al momento, sin esperar a que la vieja termine de cerrarse
+     (la frase a medias se da por terminada, para no mezclarla con lo que venga por la conexión nueva) */
+  DG.prototype.restart = function () {
+    var ws = this.ws; this.ws = null; this.audioOff();
+    if (ws) { ws.onclose = null; ws.onmessage = null; try { ws.close(); } catch (e) {} }
+    clearTimeout(this.rt);
+    if (this.stopped) return;
+    this.close();
+    this.connect();
+  };
+  /* Vigilante: si alguien está hablando (lo dice la propia llamada) y Deepgram lleva 10 s sin contestar nada,
+     la conexión se ha quedado colgada y se abre otra. Si con la grabadora se cuelga dos veces, se pasa al plan B
+     (y este móvil lo recuerda una semana) */
+  DG.prototype.voice = function (sec) {
+    if (!this.ws || this.ws.readyState !== 1 || this.paused || this.stopped || (this.ctx && this.ctx.state !== 'running')) { this.voiceSince = 0; return; }
+    this.voiceSince += sec;
+    if (Date.now() - this.lastMsg < 10000 || this.voiceSince < 4) return;
+    this.stalls++;
+    if (this.fmt && this.stalls >= 2) { lsSet('hk.dgfmt', 'pcm|' + Date.now()); this.fmt = null; }
+    this.restart();
   };
   /* Reconectar: si Deepgram ni siquiera acepta la conexión se prueba el otro modelo (no todos los idiomas están en nova-3);
      si se cortó estando abierta, se reintenta con el mismo */
@@ -813,17 +855,9 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
         };
         try { rec.start(250); } catch (e) { rec = null; }
       }
-      if (rec) {
-        this.rec = rec;
-        if (this.paused) { try { rec.pause(); } catch (e) {} }
-        /* si Deepgram no entiende este formato (algún iPhone antiguo), se pasa al plan B y se recuerda */
-        clearTimeout(this.wd);
-        if (this.fmt.indexOf('mp4') >= 0) this.wd = setTimeout(function () {
-          if (self.ws === ws && !self.gotResult && !self.stopped && !self.paused) { lsSet('hk.dgfmt', 'pcm'); self.fmt = null; self.again = true; try { ws.close(); } catch (e) {} }
-        }, 15000);
-        return;
-      }
-      lsSet('hk.dgfmt', 'pcm'); this.fmt = null; this.again = true; try { ws.close(); } catch (e) {}
+      if (rec) { this.rec = rec; if (this.paused) { try { rec.pause(); } catch (e) {} } return; }
+      /* la grabadora no arranca en este móvil: plan B (y se recuerda una semana) */
+      lsSet('hk.dgfmt', 'pcm|' + Date.now()); this.fmt = null; this.restart();
       return;
     }
     this.pcmOn().catch(function () { self.state('error'); });
@@ -832,7 +866,15 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     var self = this, C = window.AudioContext || window.webkitAudioContext;
     if (!C) throw new Error('noaudio');
     var ctx = new C(); this.ctx = ctx;
-    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+    if (ctx.state !== 'running') { try { await Promise.race([ctx.resume(), new Promise(function (r) { setTimeout(r, 1500); })]); } catch (e) {} }
+    if (this.ctx !== ctx) { try { ctx.close(); } catch (e) {} return; }
+    if (ctx.state !== 'running') waitTap(ctx);
+    ctx.onstatechange = function () {
+      if (ctx.state === 'running' || ctx.state === 'closed') { tapOk(ctx); return; }
+      if (self.ctx !== ctx) return;
+      try { var p = ctx.resume(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+      setTimeout(function () { if (self.ctx === ctx && ctx.state !== 'running' && ctx.state !== 'closed') waitTap(ctx); }, 1000);
+    };
     var src = ctx.createMediaStreamSource(this.o.stream), sink = ctx.createGain(), node = null;
     sink.gain.value = 0; sink.connect(ctx.destination);
     if (ctx.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
@@ -864,7 +906,6 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   };
   DG.prototype.frame = function (pcm) { if (!this.stopped && !this.paused) this.send(pcm); };
   DG.prototype.audioOff = function () {
-    clearTimeout(this.wd);
     var rec = this.rec; this.rec = null;
     if (rec) { rec.ondataavailable = null; try { if (rec.state !== 'inactive') rec.stop(); } catch (e) {} }
     try { if (this.node && this.node.port) this.node.port.onmessage = null; } catch (e) {}
@@ -874,14 +915,13 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     try { if (this.sink) this.sink.disconnect(); } catch (e) {}
     this.src = this.node = this.sink = null;
     var ctx = this.ctx; this.ctx = null;
-    if (ctx) { try { ctx.close(); } catch (e) {} }
+    if (ctx) { tapOk(ctx); ctx.onstatechange = null; try { ctx.close(); } catch (e) {} }
   };
   DG.prototype.send = function (buf) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(buf); this.lastSent = Date.now(); } catch (e) {} } };
   DG.prototype.sendJSON = function (o) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(o)); this.lastSent = Date.now(); } catch (e) {} } };
   DG.prototype.msg = function (s) {
     var m; try { m = JSON.parse(s); } catch (e) { return; }
     if (m.type === 'Results') {
-      this.gotResult = true; this.mp4Bad = 0;
       var alt = m.channel && m.channel.alternatives && m.channel.alternatives[0];
       var txt = alt && alt.transcript ? String(alt.transcript).trim() : '';
       if (m.is_final) { if (txt) this.finals.push(txt); this.interim = ''; } else this.interim = txt;
@@ -976,7 +1016,8 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     }
   };
 
-  window.Voice = { DG: DG, Tone: Tone, recFormat: recFormat };
+  var api = { DG: DG, Tone: Tone, recFormat: recFormat, quality: quality, resumeAll: resumeAll, onNeedTap: null };
+  window.Voice = api;
 })();
 </script>
 
@@ -1063,12 +1104,13 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       cancelled: 'Llamada cancelada',
       micDenied: 'Sin permiso para el micrófono',
       tapToHear: 'Toca la pantalla para oír la llamada',
+      tapForSubs: 'Toca la pantalla para activar los subtítulos',
       stVoice: 'Voz a texto',
       stTr: 'Traductor',
       trFail: 'El traductor no responde ahora mismo; reintentando…',
       notTranslated: 'Sin traducir: el traductor no respondió',
       partTranslated: 'Traducción incompleta: el traductor no respondió',
-      version: 'versión 3',
+      version: 'versión 4',
       accept: 'Aceptar',
       decline: 'Rechazar',
       cancel: 'Cancelar',
@@ -1173,12 +1215,13 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       cancelled: 'Arama iptal edildi',
       micDenied: 'Mikrofon izni yok',
       tapToHear: 'Sesi duymak için ekrana dokun',
+      tapForSubs: 'Altyazıları açmak için ekrana dokun',
       stVoice: 'Sesten yazıya',
       stTr: 'Çevirmen',
       trFail: 'Çevirmen şu an yanıt vermiyor; tekrar deneniyor…',
       notTranslated: 'Çevrilemedi: çevirmen yanıt vermedi',
       partTranslated: 'Çeviri eksik: çevirmen yanıt vermedi',
-      version: 'sürüm 3',
+      version: 'sürüm 4',
       accept: 'Kabul et',
       decline: 'Reddet',
       cancel: 'İptal',
@@ -1285,6 +1328,17 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   function keyFrom() { return store.get('dgFrom', '') || ''; }
   function keyIsOwn() { return !!myKey() && !keyFrom(); }
   function willTranscribeSelf() { return !!myKey() && canListen; }
+  function sttQ() { return Voice.quality(); }
+  /* En la llamada, ¿transcribo yo mi propia voz? Un iPhone deja que lo haga el otro móvil si ese lo hace bien
+     (Android con clave): así el iPhone no toca el sonido y los subtítulos no se cortan */
+  function selfPlan() {
+    if (!willTranscribeSelf()) return false;
+    if (sttQ() === 'good') return true;
+    var p = Call.partnerCaps;
+    if (p) return !(p.can && p.q === 'good');
+    return !(S.partner.stt && S.partner.q === 'good');
+  }
+  function readCaps(m) { return { stt: !!m.stt, can: typeof m.can === 'boolean' ? m.can : !!m.stt, q: typeof m.q === 'string' ? m.q : '' }; }
 
   /* ---------- Pantalla 1: idioma ---------- */
   var pickLang = null;
@@ -1418,7 +1472,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       var noMqtt = S.link.mqttUp() === 0 || S.partnerMqtt === 0;
       if ((noMqtt && now - lastHiNtfy > 15000) || now - lastHiNtfy > 600000) { useNtfy = true; lastHiNtfy = now; }
     }
-    S.link.send({ t: 'hi', lang: S.lang, name: S.name, ask: !!ask, m: S.link.mqttUp(), stt: willTranscribeSelf(), kopt: !!store.get('kopt', false), busy: inCall() }, { ntfy: useNtfy });
+    S.link.send({ t: 'hi', lang: S.lang, name: S.name, ask: !!ask, m: S.link.mqttUp(), stt: willTranscribeSelf(), q: sttQ(), kopt: !!store.get('kopt', false), busy: inCall() }, { ntfy: useNtfy });
   }
   function shareKey(force) {
     if (!S.link || !S.link.key || !keyIsOwn()) return;
@@ -1434,6 +1488,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       if ((obj.lang === 'es' || obj.lang === 'tr') && obj.lang !== S.partner.lang) { S.partner.lang = obj.lang; changed = true; }
     }
     if (obj.t === 'hi' && typeof obj.stt === 'boolean' && obj.stt !== S.partner.stt) { S.partner.stt = obj.stt; changed = true; }
+    if (obj.t === 'hi' && typeof obj.q === 'string' && obj.q !== S.partner.q) { S.partner.q = obj.q; changed = true; }
     if (meta.fresh && !S.partner.everSeen) { S.partner.everSeen = true; changed = true; }
     if (changed) store.set('partner', S.partner);
     if (typeof obj.m === 'number') S.partnerMqtt = obj.m;
@@ -1474,7 +1529,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     state: 'idle', id: null, outgoing: false, peer: null, pc: null, dc: null, local: null, remote: null, gotAck: false, gotOffer: false,
     ringIv: null, timeout: null, noteTimer: null, discTimer: null, timerIv: null, capsTimer: null, endTimer: null,
     startedAt: 0, partnerCaps: null, sentCaps: null, stt: { local: null, remote: null }, muted: false, reconnecting: false,
-    endedMsg: '', sttError: false, needTap: false, done: {}
+    endedMsg: '', sttError: false, needTap: false, needTapSubs: false, trSeen: 0, vstat: {}, voiceIv: null, done: {}
   };
   function inCall() { return Call.state !== 'idle' && Call.state !== 'ended'; }
   function setCallState(st) { Call.state = st; renderCall(); ui(); }
@@ -1482,7 +1537,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     clearTimeout(Call.endTimer);
     Call.id = cid; Call.outgoing = outgoing; Call.peer = peer || null; Call.gotAck = false; Call.gotOffer = false;
     Call.partnerCaps = null; Call.sentCaps = null; Call.muted = false; Call.reconnecting = false; Call.startedAt = 0;
-    Call.endedMsg = ''; Call.sttError = false; Call.needTap = false;
+    Call.endedMsg = ''; Call.sttError = false; Call.needTap = false; Call.needTapSubs = false; Call.trSeen = 0; Call.vstat = {};
     closeAllDialogs(); stopTest(); resetSubs(); hideNote();
     show('sLlamada');
   }
@@ -1558,7 +1613,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       Call.local = stream;
     }
     keepAwake();
-    S.link.send({ t: 'accept', cid: cid, stt: willTranscribeSelf() }, { ntfy: true });
+    S.link.send({ t: 'accept', cid: cid, stt: selfPlan(), can: willTranscribeSelf(), q: sttQ() }, { ntfy: true });
     Call.timeout = setTimeout(function () { if (Call.state === 'connecting' && Call.id === cid) endCall('failed'); }, 30000);
   }
   function declineCall() {
@@ -1610,7 +1665,40 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     var p = a.play();
     if (p && p.catch) p.catch(function () { if (Call.remote) { Call.needTap = true; renderCall(); } });
   }
-  document.addEventListener('click', function () { if (Call.needTap && Call.remote) { Call.needTap = false; playRemote(); renderCall(); } }, true);
+  document.addEventListener('click', function () {
+    if (Call.needTap && Call.remote) { Call.needTap = false; playRemote(); renderCall(); }
+    Voice.resumeAll();
+  }, true);
+  Voice.onNeedTap = function (on) {
+    Call.needTapSubs = !!on;
+    if (on && Test.dg) $('testTr').textContent = t('tapForSubs');
+    renderCall();
+  };
+
+  /* Cada 2 s mira en la propia llamada si alguien está hablando (sin tocar el sonido) y se lo pasa al vigilante de Deepgram */
+  function pollVoice() {
+    var pc = Call.pc;
+    if (!pc || Call.state !== 'active' || (!Call.stt.local && !Call.stt.remote)) return;
+    pc.getStats().then(function (rep) {
+      if (Call.pc !== pc) return;
+      var src = null, inb = null;
+      rep.forEach(function (s) {
+        if (s.kind !== 'audio' || typeof s.totalAudioEnergy !== 'number' || typeof s.totalSamplesDuration !== 'number') return;
+        if (s.type === 'media-source') src = s; else if (s.type === 'inbound-rtp') inb = s;
+      });
+      feedVoice('l', src, Call.stt.local);
+      feedVoice('r', inb, Call.stt.remote);
+    }).catch(function () {});
+  }
+  function feedVoice(k, s, dg) {
+    if (!s) return;
+    var prev = Call.vstat[k];
+    Call.vstat[k] = { e: s.totalAudioEnergy, d: s.totalSamplesDuration };
+    if (!prev || !dg) return;
+    var dd = s.totalSamplesDuration - prev.d, de = s.totalAudioEnergy - prev.e;
+    if (!(dd > 0)) return;
+    dg.voice(Math.sqrt(Math.max(0, de) / dd) > 0.02 ? dd : 0);
+  }
 
   function pcState(pc) {
     if (pc !== Call.pc) return;
@@ -1620,6 +1708,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       if (Call.state === 'connecting') {
         clearTimeout(Call.timeout); Call.startedAt = Date.now();
         setCallState('active'); startTimer(); playRemote(); planSTT(); sendCaps(true);
+        clearInterval(Call.voiceIv); Call.voiceIv = setInterval(pollVoice, 2000);
       } else if (Call.reconnecting) { Call.reconnecting = false; renderCall(); }
     } else if (s === 'disconnected') {
       if (Call.state === 'active' && !Call.discTimer) {
@@ -1632,7 +1721,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   }
   async function connectAsCaller(obj) {
     clearInterval(Call.ringIv); clearTimeout(Call.timeout); clearTimeout(Call.noteTimer); Tone.stop(); hideNote();
-    if (typeof obj.stt === 'boolean') Call.partnerCaps = { stt: obj.stt };
+    if (typeof obj.stt === 'boolean') Call.partnerCaps = readCaps(obj);
     Call.peer = obj.f || Call.peer;
     var cid = Call.id;
     setCallState('connecting');
@@ -1644,14 +1733,14 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       await pc.setLocalDescription(await pc.createOffer());
       await gathered;
       if (Call.id !== cid || Call.pc !== pc) return;
-      S.link.send({ t: 'offer', cid: cid, sdp: await Core.pack(pc.localDescription.sdp), stt: willTranscribeSelf() }, { ntfy: true });
+      S.link.send({ t: 'offer', cid: cid, sdp: await Core.pack(pc.localDescription.sdp), stt: selfPlan(), can: willTranscribeSelf(), q: sttQ() }, { ntfy: true });
     } catch (e) { if (window.console) console.error(e); if (Call.id === cid) endCall('failed'); return; }
     Call.timeout = setTimeout(function () { if (Call.state === 'connecting' && Call.id === cid) endCall('failed'); }, 30000);
   }
   async function answerOffer(obj) {
     if (Call.gotOffer) return;
     Call.gotOffer = true;
-    if (typeof obj.stt === 'boolean') Call.partnerCaps = { stt: obj.stt };
+    if (typeof obj.stt === 'boolean') Call.partnerCaps = readCaps(obj);
     var cid = Call.id;
     try {
       var pc = await makePC(cid);
@@ -1681,7 +1770,8 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     }
     if (cid) Call.done[cid] = 1;
     clearInterval(Call.ringIv); clearTimeout(Call.timeout); clearTimeout(Call.noteTimer); clearTimeout(Call.discTimer); clearInterval(Call.timerIv); clearTimeout(Call.capsTimer);
-    Call.discTimer = null; Call.capsTimer = null;
+    clearInterval(Call.voiceIv);
+    Call.discTimer = null; Call.capsTimer = null; Call.voiceIv = null;
     Tone.stop();
     stopSTT();
     if (Call.pc) { try { Call.pc.close(); } catch (e) {} }
@@ -1689,7 +1779,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     var a = $('remoteAudio'); try { a.pause(); } catch (e) {} a.srcObject = null;
     var dur = Call.startedAt ? Date.now() - Call.startedAt : 0;
     Call.pc = null; Call.dc = null; Call.local = null; Call.remote = null; Call.partnerCaps = null; Call.muted = false;
-    Call.reconnecting = false; Call.startedAt = 0; Call.needTap = false; Call.sttError = false;
+    Call.reconnecting = false; Call.startedAt = 0; Call.needTap = false; Call.needTapSubs = false; Call.sttError = false;
     Call.endedMsg = endText(reason, dur);
     setCallState('ended');
     releaseAwake();
@@ -1727,18 +1817,22 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     if (Call.dc && Call.dc.readyState === 'open') { try { Call.dc.send(JSON.stringify(obj)); return; } catch (e) {} }
     if (S.link && Call.id && inCall()) S.link.send(Object.assign({}, obj, { cid: Call.id }), { ntfy: false });
   }
-  function capsNow() { var l = Call.stt.local; return l ? l.st !== 'error' : willTranscribeSelf(); }
+  /* Lo que este móvil le dice al otro: si transcribe su propia voz (stt), si puede transcribir (can) y lo bien que lo hace (q) */
+  function capsNow() {
+    var l = Call.stt.local, bad = !!(l && l.st === 'error');
+    return { stt: l ? !bad : selfPlan(), can: willTranscribeSelf() && !bad, q: sttQ() };
+  }
   function sendCaps(force) {
     if (Call.state !== 'active' && Call.state !== 'connecting') return;
-    var c = capsNow();
-    if (!force && c === Call.sentCaps) return;
-    Call.sentCaps = c;
-    sendCallData({ t: 'caps', stt: c });
+    var c = capsNow(), k = JSON.stringify(c);
+    if (!force && k === Call.sentCaps) return;
+    Call.sentCaps = k;
+    sendCallData({ t: 'caps', stt: c.stt, can: c.can, q: c.q });
   }
   function callData(m) {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'sub') showSub(m);
-    else if (m.t === 'caps') { Call.partnerCaps = { stt: !!m.stt }; planSTT(); }
+    else if (m.t === 'caps') { Call.partnerCaps = readCaps(m); planSTT(); }
     else if (m.t === 'hangup') { if (Call.state === 'active' || Call.state === 'connecting') endCall('ended', false); }
   }
 
@@ -1789,11 +1883,14 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
 
   function planSTT() {
     if (Call.state !== 'active' || !Call.local) return;
-    var key = myKey(), can = !!key && canListen;
-    if (!Call.stt.local && can) {
+    var key = myKey(), can = !!key && canListen, mine = can && selfPlan();
+    if (!Call.stt.local && mine) {
       Call.stt.local = new Voice.DG({ key: key, lang: S.lang, stream: Call.local, onUpdate: makeRelay(S.lang, partnerLang(), S.cid), onState: sttState });
       if (Call.muted) Call.stt.local.setPaused(true);
       Call.stt.local.start();
+    } else if (Call.stt.local && !mine && Call.partnerCaps) {
+      /* iPhone: el otro móvil se encarga de mi voz */
+      Call.stt.local.stop(); Call.stt.local = null;
     }
     var partnerCant = !!(Call.partnerCaps && !Call.partnerCaps.stt);
     if (partnerCant && can && Call.remote && !Call.stt.remote) {
@@ -1803,7 +1900,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
       Call.stt.remote.stop(); Call.stt.remote = null;
     }
     if (!Call.partnerCaps && !Call.capsTimer) {
-      Call.capsTimer = setTimeout(function () { Call.capsTimer = null; if (!Call.partnerCaps && Call.state === 'active') { Call.partnerCaps = { stt: false }; planSTT(); } }, 5000);
+      Call.capsTimer = setTimeout(function () { Call.capsTimer = null; if (!Call.partnerCaps && Call.state === 'active') { Call.partnerCaps = readCaps({ stt: false }); planSTT(); } }, 5000);
     }
     sendCaps(false);
     renderSubs();
@@ -1824,6 +1921,7 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   function showSub(m) {
     if (!m || typeof m.o !== 'string' || typeof m.sid !== 'string') return;
     var v = Number(m.v) || 0, from = m.lang === 'tr' ? 'tr' : 'es';
+    if (m.tr) Call.trSeen = Date.now();
     if (m.spk === S.cid) {
       var mi = Subs.mine;
       if (!mi || mi.sid !== m.sid) {
@@ -1946,8 +2044,10 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
   }
   /* Las dos lucecitas de arriba: verde = funciona, amarillo = conectando, rojo = falla */
   function voiceState() {
-    var d = Call.stt.local || Call.stt.remote;
-    if (d) return d.st === 'on' ? 'ok' : d.st === 'error' ? 'bad' : 'wait';
+    if (Call.needTapSubs) return 'wait';
+    var ds = [Call.stt.local, Call.stt.remote].filter(Boolean);
+    if (ds.some(function (d) { return d.st === 'error'; })) return 'bad';
+    if (ds.length) return ds.every(function (d) { return d.st === 'on'; }) ? 'ok' : 'wait';
     return Call.partnerCaps && Call.partnerCaps.stt ? 'ok' : 'off';
   }
   function renderStatus() {
@@ -1955,8 +2055,8 @@ dialog::backdrop { background: rgba(5, 12, 18, .55); }
     $('callStatus').hidden = !active;
     if (!active) return;
     $('stVoice').className = 'sdot ' + voiceState();
-    $('stTr').className = 'sdot ' + (Core.tstat.fails >= 2 ? 'bad' : Core.tstat.ok ? 'ok' : 'off');
-    var note = Call.needTap ? t('tapToHear') : Call.sttError ? t('subsError') : Core.tstat.fails >= 2 ? t('trFail') : '';
+    $('stTr').className = 'sdot ' + (Core.tstat.fails >= 2 ? 'bad' : Core.tstat.ok || Call.trSeen ? 'ok' : 'off');
+    var note = Call.needTap ? t('tapToHear') : Call.needTapSubs ? t('tapForSubs') : Call.sttError ? t('subsError') : Core.tstat.fails >= 2 ? t('trFail') : '';
     if (note) { $('callNoteTxt').textContent = note; $('callNoteBtn').hidden = true; $('callNote').hidden = false; }
     else hideNote();
   }
